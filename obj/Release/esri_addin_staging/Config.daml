@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArcGIS defaultAssembly="DimensionOverlay.dll" defaultNamespace="DimensionOverlay" xmlns="http://schemas.esri.com/DADF/Registry" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://schemas.esri.com/DADF/Registry http://Config.xsd">
+
+  <!-- desktopVersion below is the ArcGIS Pro 3.3 SDK build number (3.3.48105), which is
+       the minimum-version gate Pro uses to load an add-in -- it is NOT unique per patch
+       (3.3.0/3.3.1/3.3.2 share the 3.3 gate) per Esri's own documentation. Still, the
+       safest value is the exact one your own ArcGIS Pro 3.3.2 + VS template generates:
+       create a throwaway "ArcGIS Pro Add-in" project once on your machine and copy the
+       desktopVersion string it fills in automatically, replacing the line below. -->
+  <AddInInfo id="{9B2F1B6E-3B9F-4B7F-9E7B-D1F1E3A2C001}" version="1.0.0" desktopVersion="3.3.48105">
+    <Name>Dimension Overlay Tool</Name>
+    <Description>Real-time CAD-like dimension overlay for the selected feature in the selected layer.</Description>
+    <Image>Images\AddinDesktop32.png</Image>
+    <Author>Aboelmagd</Author>
+    <Company>Al-Qotr Co.</Company>
+    <Date>8/23/2026</Date>
+    <Subject>Editing, Geometry</Subject>
+  </AddInInfo>
+
+  <modules>
+    <insertModule id="DimensionOverlay_Module" className="Module1" autoLoad="false" caption="Dimension Overlay Module">
+
+      <tabs>
+        <tab id="DimensionOverlay_Tab1" caption="Dimension Overlay">
+          <group refID="DimensionOverlay_Group1" />
+        </tab>
+      </tabs>
+
+      <groups>
+        <group id="DimensionOverlay_Group1" caption="Dimension Overlay" appearsOnAddInTab="false">
+          <toolPalette id="DimensionOverlay_ToolPalette1" />
+          <button refID="DimensionOverlay_ShowSettingsPane_Button" size="large" />
+        </group>
+      </groups>
+
+      <controls>
+        <tool id="DimensionOverlay_DimensionOverlayTool"
+              caption="Dimension Overlay"
+              className="Tools.DimensionOverlayTool"
+              loadOnClick="true"
+              smallImage="Images\GenericButtonRed16.png"
+              largeImage="Images\GenericButtonRed32.png"
+              condition="esri_mapping_mapPane">
+          <tooltip heading="Dimension Overlay Tool">
+            Edit the selected feature and see live CAD-style dimensions.
+            <disabledText />
+          </tooltip>
+        </tool>
+
+        <button id="DimensionOverlay_ShowSettingsPane_Button"
+                caption="Settings"
+                className="UI.DimensionSettingsPane_ShowButton"
+                loadOnClick="true"
+                smallImage="Images\GenericButtonBlue16.png"
+                largeImage="Images\GenericButtonBlue32.png">
+          <tooltip heading="Dimension Settings">
+            Open the Dimension Overlay settings pane (layer, units, method, display options).
+            <disabledText />
+          </tooltip>
+        </button>
+      </controls>
+
+      <toolPalettes>
+        <toolPalette id="DimensionOverlay_ToolPalette1" caption="Dimension Overlay" itemsInRow="1">
+          <tool refID="DimensionOverlay_DimensionOverlayTool" />
+        </toolPalette>
+      </toolPalettes>
+
+      <panes>
+        <pane id="DimensionOverlay_UI_DimensionSettingsPane"
+              caption="Dimension Overlay Settings"
+              className="UI.DimensionSettingsPaneViewModel"
+              defaultTab="esri_core_projectTab"
+              defaultDock="dock_right">
+          <content className="UI.DimensionSettingsPaneView" />
+        </pane>
+      </panes>
+
+    </insertModule>
+  </modules>
+</ArcGIS>

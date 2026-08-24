@@ -1,0 +1,77 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- ArcGIS Pro 3.3.x (including 3.3.2) is built against .NET 8 -> net8.0-windows is correct. -->
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>false</UseWindowsForms>
+    <RootNamespace>DimensionOverlay</RootNamespace>
+    <AssemblyName>DimensionOverlay</AssemblyName>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <PlatformTarget>x64</PlatformTarget>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <NoWarn>$(NoWarn);CA1416;NU1603</NoWarn>
+    <!-- Disable legacy Esri MSBuild targets to use clean native ZipDirectory packager -->
+    <EnableEsriAddInFileGeneration>false</EnableEsriAddInFileGeneration>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Configured for ArcGIS Pro 3.4.2 installed on machine -->
+    <PackageReference Include="Esri.ArcGISPro.Extensions30" Version="[3.3.0,4.0.0)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Images\AddinDesktop32.png" Condition="Exists('Images\AddinDesktop32.png')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\GenericButtonRed16.png" Condition="Exists('Images\GenericButtonRed16.png')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\GenericButtonRed32.png" Condition="Exists('Images\GenericButtonRed32.png')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\GenericButtonBlue16.png" Condition="Exists('Images\GenericButtonBlue16.png')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Images\GenericButtonBlue32.png" Condition="Exists('Images\GenericButtonBlue32.png')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Config.daml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!-- Native ArcGIS Pro Add-in (.esriAddinX) packager with exact Esri-compliant ZIP layout:
+       Root: Config.daml
+       Subfolder Install/: Binaries, PDBs, and Assets -->
+  <Target Name="PackageAddInCustom" AfterTargets="Build">
+    <PropertyGroup>
+      <StagingDir>$(IntermediateOutputPath)esri_addin_staging\</StagingDir>
+      <AddInPackageFile>$(OutDir)$(AssemblyName).esriAddinX</AddInPackageFile>
+    </PropertyGroup>
+
+    <RemoveDir Directories="$(StagingDir)" Condition="Exists('$(StagingDir)')" />
+    <MakeDir Directories="$(StagingDir);$(StagingDir)Install" />
+
+    <!-- Copy Config.daml to root -->
+    <Copy SourceFiles="$(OutDir)Config.daml" DestinationFolder="$(StagingDir)" Condition="Exists('$(OutDir)Config.daml')" />
+
+    <!-- Copy binaries and content to Install/ subfolder -->
+    <ItemGroup>
+      <InstallFiles Include="$(OutDir)**\*" Exclude="$(OutDir)Config.daml;$(OutDir)*.esriAddinX" />
+    </ItemGroup>
+    <Copy SourceFiles="@(InstallFiles)" DestinationFolder="$(StagingDir)Install\%(RecursiveDir)" />
+
+    <!-- Create .esriAddinX package file -->
+    <Delete Files="$(AddInPackageFile)" Condition="Exists('$(AddInPackageFile)')" />
+    <ZipDirectory SourceDirectory="$(StagingDir)" DestinationFile="$(AddInPackageFile)" Overwrite="true" />
+    <Copy SourceFiles="$(AddInPackageFile)" DestinationFolder="$(ProjectDir)bin" Condition="Exists('$(AddInPackageFile)')" />
+    <Message Text="Successfully generated ArcGIS Pro Add-in package: $(AddInPackageFile)" Importance="high" />
+  </Target>
+
+</Project>
