@@ -1,0 +1,20 @@
+# Auto detect text files and perform LF -> CRLF normalization on checkout on Windows
+* text=auto
+
+# Source code and config files
+*.cs text diff=csharp
+*.xaml text
+*.daml text
+*.csproj text
+*.md text
+*.gitignore text
+*.gitattributes text
+
+# Binary files
+*.png binary
+*.jpg binary
+*.ico binary
+*.esriAddinX binary
+*.dll binary
+*.pdb binary
+*.zip binary

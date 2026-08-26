@@ -2,9 +2,13 @@
 # .gitignore for ArcGIS Pro .NET Add-in (C# / .NET 8 / Visual Studio)
 # ====================================================================
 
-# ── Build & Intermediate Output Folders ────────────────────────────
+# ── Build Outputs & Intermediate Compilation Folders ───────────────
 obj/
 [Oo]bj/
+bin/
+[Bb]in/
+[Dd]ebug/
+[Rr]elease/
 x64/
 x86/
 [Aa]rm/
@@ -14,32 +18,40 @@ bld/
 out/
 [Tt]est[Rr]esults/
 esri_addin_staging/
+Generated Files/
+*_wpftmp.csproj
+*.FileListAbsolute.txt
 
-# ── Binaries & Intermediate files ──────────────────────────────────
-bin/
-[Bb]in/
-[Dd]ebug/
-[Rr]elease/
-
-# ── Allow Pre-built Release Add-in Package for direct testing ──────
-!*.esriAddinX
+# ── Allow Pre-built Release Package Only ───────────────────────────
 !Addin_Package/
 !Addin_Package/**
+!Addin_Package/*.esriAddinX
 
-# ── Backups & Scratch Folders ──────────────────────────────────────
-bin - Copy/
+# ── Backups, Drafts & Copy Folders ─────────────────────────────────
+* - Copy/
+* - Copy*/
 draft/
+draft/**
 backup/
 Backup/
+backups/
+Backups/
 scratch/
 temp/
 Temp/
 tmp/
 Tmp/
+*.bak
+*.old
+*.orig
+*.zip
 
-# ── Visual Studio & IDEs ───────────────────────────────────────────
+# ── Visual Studio, Rider & IDE Caches ──────────────────────────────
 .vs/
 .vscode/
+.idea/
+_ReSharper*/
+*.DotSettings.user
 *.suo
 *.user
 *.userosscache
@@ -60,7 +72,7 @@ project.lock.json
 project.fragment.lock.json
 artifacts/
 
-# ── Log Files & Crash Dumps ────────────────────────────────────────
+# ── Logs & Crash Dumps ─────────────────────────────────────────────
 *.log
 *.tlog
 *.dmp
@@ -78,7 +90,9 @@ $RECYCLE.BIN/
 .Spotlight-V100
 .Trashes
 
-# ── ArcGIS Pro Specific Temporary Artifacts ────────────────────────
+# ── ArcGIS Pro & Geodatabase Temporary Files ───────────────────────
 *.esriAddinX.zip
 *.aprx.bak
 *.gdb.lock
+*.geodatabase-shm
+*.geodatabase-wal
