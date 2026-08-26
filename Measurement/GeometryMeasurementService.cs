@@ -70,13 +70,17 @@ namespace DimensionOverlay.Measurement
             // ── Segments (all parts) ─────────────────────────────────────────────
             var segments = BuildSegments(polygon.Parts, geodesic, nativeLinAbbrev, settings);
 
+            // ── Vertex Angles ─────────────────────────────────────────────────────
+            var angles = BuildVertexAngles(polygon.Parts, isPolygon: true);
+
             // ── Assemble result ───────────────────────────────────────────────────
             var result = new PolygonMeasurementResult(
                 polygon,
                 segments,
                 displayArea,  areaAbbrev,
                 displayPerim, linearAbbrev,
-                interior);
+                interior,
+                angles);
 
             return result;
         }
@@ -101,11 +105,96 @@ namespace DimensionOverlay.Measurement
                 UnitConverter.ConvertLength(nativeTotal, nativeLinAbbrev, settings.DisplayUnit);
 
             var segments = BuildSegments(polyline.Parts, geodesic, nativeLinAbbrev, settings);
+            var angles = BuildVertexAngles(polyline.Parts, isPolygon: false);
 
-            return new PolylineMeasurementResult(polyline, segments, displayTotal, linearAbbrev);
+            return new PolylineMeasurementResult(polyline, segments, displayTotal, linearAbbrev, angles);
         }
 
         // ── Private helpers ───────────────────────────────────────────────────────
+
+        private static List<VertexAngleMeasurement> BuildVertexAngles(ReadOnlyPartCollection parts, bool isPolygon)
+        {
+            var angles = new List<VertexAngleMeasurement>();
+
+            foreach (var part in parts)
+            {
+                var pts = new List<MapPoint>(part.Count + 1);
+                foreach (var seg in part)
+                    pts.Add(seg.StartPoint);
+                if (part.Count > 0)
+                    pts.Add(part[part.Count - 1].EndPoint);
+
+                if (pts.Count < 3) continue;
+
+                if (isPolygon)
+                {
+                    int k = pts.Count;
+                    // If polygon ring is closed (first pt == last pt), remove redundant last pt
+                    if (Math.Abs(pts[0].X - pts[k - 1].X) < 1e-7 && Math.Abs(pts[0].Y - pts[k - 1].Y) < 1e-7)
+                    {
+                        k--;
+                    }
+
+                    if (k < 3) continue;
+
+                    for (int i = 0; i < k; i++)
+                    {
+                        var a = pts[(i - 1 + k) % k];
+                        var v = pts[i];
+                        var b = pts[(i + 1) % k];
+
+                        double? angle = CalculateAngle(a, v, b);
+                        if (angle.HasValue)
+                        {
+                            angles.Add(new VertexAngleMeasurement(v, angle.Value, a, b));
+                        }
+                    }
+                }
+                else
+                {
+                    // Polyline: interior vertices only
+                    for (int i = 1; i < pts.Count - 1; i++)
+                    {
+                        var a = pts[i - 1];
+                        var v = pts[i];
+                        var b = pts[i + 1];
+
+                        double? angle = CalculateAngle(a, v, b);
+                        if (angle.HasValue)
+                        {
+                            angles.Add(new VertexAngleMeasurement(v, angle.Value, a, b));
+                        }
+                    }
+                }
+            }
+
+            return angles;
+        }
+
+        private static double? CalculateAngle(MapPoint a, MapPoint v, MapPoint b)
+        {
+            if (a == null || v == null || b == null) return null;
+
+            double dx1 = a.X - v.X, dy1 = a.Y - v.Y;
+            double dx2 = b.X - v.X, dy2 = b.Y - v.Y;
+
+            double len1 = Math.Sqrt((dx1 * dx1) + (dy1 * dy1));
+            double len2 = Math.Sqrt((dx2 * dx2) + (dy2 * dy2));
+
+            if (len1 < 1e-7 || len2 < 1e-7) return null;
+
+            double dot = (dx1 * dx2) + (dy1 * dy2);
+            double cosVal = Math.Clamp(dot / (len1 * len2), -1.0, 1.0);
+            double deg = Math.Acos(cosVal) * (180.0 / Math.PI);
+
+            // Exclude straight-line angles close to 180 degrees (within 1.0 degree tolerance)
+            if (Math.Abs(deg - 180.0) < 1.0 || deg < 0.5)
+            {
+                return null;
+            }
+
+            return deg;
+        }
 
         private static List<SegmentMeasurement> BuildSegments(
             ReadOnlyPartCollection parts,

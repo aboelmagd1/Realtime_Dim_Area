@@ -54,8 +54,8 @@ namespace DimensionOverlay.Models
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
 
         // ── Master ON / OFF Toggle Switch ─────────────────────────────────────────
-        private bool _isEnabled = true;
-        /// <summary>Master switch: turns real-time dimension monitoring ON or OFF.</summary>
+        private bool _isEnabled = false;
+        /// <summary>Master switch: turns real-time dimension monitoring ON or OFF (Default: OFF).</summary>
         public bool IsEnabled
         {
             get => _isEnabled;
@@ -65,10 +65,31 @@ namespace DimensionOverlay.Models
                 {
                     _isEnabled = value;
                     Raise(nameof(IsEnabled));
+                    System.Diagnostics.Trace.WriteLine($"[DIM] Overlay Enabled = {_isEnabled}");
                     if (_isEnabled)
                         Module1.Current?.Engine?.Enable();
                     else
                         Module1.Current?.Engine?.Disable();
+                }
+            }
+        }
+
+        // ── Service Layer Support ─────────────────────────────────────────────────
+        private bool _applyToServiceLayers = false;
+        /// <summary>
+        /// Whether Dynamic Dimension Overlay is allowed to work on ArcGIS service-based layers (Default: OFF).
+        /// </summary>
+        public bool ApplyToServiceLayers
+        {
+            get => _applyToServiceLayers;
+            set
+            {
+                if (_applyToServiceLayers != value)
+                {
+                    _applyToServiceLayers = value;
+                    Raise(nameof(ApplyToServiceLayers));
+                    System.Diagnostics.Trace.WriteLine($"[DIM] ApplyToServiceLayers = {_applyToServiceLayers}");
+                    Module1.Current?.Engine?.RefreshSelectionDisplay();
                 }
             }
         }
@@ -79,7 +100,13 @@ namespace DimensionOverlay.Models
         public FeatureLayer TargetLayer
         {
             get => _targetLayer;
-            set { _targetLayer = value; Raise(nameof(TargetLayer)); }
+            set
+            {
+                _targetLayer = value;
+                Raise(nameof(TargetLayer));
+                System.Diagnostics.Trace.WriteLine($"[DIM] Target Layer = {(_targetLayer != null ? _targetLayer.Name : "None")}");
+                Module1.Current?.Engine?.RefreshSelectionDisplay();
+            }
         }
 
         // ── Display toggles ───────────────────────────────────────────────────────
@@ -97,7 +124,7 @@ namespace DimensionOverlay.Models
             set { _showArea = value; Raise(nameof(ShowArea)); }
         }
 
-        private bool _showPerimeter;
+        private bool _showPerimeter = false;
         public bool ShowPerimeter
         {
             get => _showPerimeter;
@@ -109,6 +136,14 @@ namespace DimensionOverlay.Models
         {
             get => _showBearings;
             set { _showBearings = value; Raise(nameof(ShowBearings)); }
+        }
+
+        private bool _showVertexAngles = false;
+        /// <summary>Show measured angle between consecutive segments at vertices (Default: OFF).</summary>
+        public bool ShowVertexAngles
+        {
+            get => _showVertexAngles;
+            set { _showVertexAngles = value; Raise(nameof(ShowVertexAngles)); }
         }
 
         private bool _showAreaDifference;
@@ -133,11 +168,16 @@ namespace DimensionOverlay.Models
             set { _method = value; Raise(nameof(Method)); }
         }
 
-        private DisplayUnitOption _displayUnit = DisplayUnitOption.LayerNative;
+        private DisplayUnitOption _displayUnit = DisplayUnitOption.Meters;
         public DisplayUnitOption DisplayUnit
         {
             get => _displayUnit;
-            set { _displayUnit = value; Raise(nameof(DisplayUnit)); }
+            set
+            {
+                _displayUnit = value;
+                Raise(nameof(DisplayUnit));
+                System.Diagnostics.Trace.WriteLine($"[DIM] Display Unit = {_displayUnit}");
+            }
         }
 
         private int _precision = 2;
@@ -161,7 +201,12 @@ namespace DimensionOverlay.Models
         public DimensionStyleOption DimensionStyle
         {
             get => _dimensionStyle;
-            set { _dimensionStyle = value; Raise(nameof(DimensionStyle)); }
+            set
+            {
+                _dimensionStyle = value;
+                Raise(nameof(DimensionStyle));
+                System.Diagnostics.Trace.WriteLine($"[DIM] Style = {_dimensionStyle}");
+            }
         }
 
         private TextColorOption _textColor = TextColorOption.Black;

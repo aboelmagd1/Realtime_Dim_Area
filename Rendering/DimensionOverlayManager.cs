@@ -134,7 +134,25 @@ namespace DimensionOverlay.Rendering
                 });
             }
 
-            // 4. QC Item
+            // 4. Vertex Angles
+            if (result.VertexAngles != null)
+            {
+                foreach (var va in result.VertexAngles)
+                {
+                    _cachedMeasurements.Items.Add(new DimensionItem
+                    {
+                        Role = DimensionItemRole.VertexAngle,
+                        Value = va.AngleDegrees,
+                        AnchorPoint = va.Vertex,
+                        StartPoint = va.PrevPoint,
+                        EndPoint = va.NextPoint,
+                        Angle = 0,
+                        IsVisible = settings.ShowVertexAngles
+                    });
+                }
+            }
+
+            // 5. QC Item
             if ((settings.ShowAreaDifference || settings.ShowToleranceStatus) &&
                 result.InteriorLabelPoint != null &&
                 (result.OriginalDisplayArea.HasValue || result.WithinTolerance.HasValue))
@@ -207,6 +225,23 @@ namespace DimensionOverlay.Rendering
                 }
             }
 
+            if (result.VertexAngles != null)
+            {
+                foreach (var va in result.VertexAngles)
+                {
+                    _cachedMeasurements.Items.Add(new DimensionItem
+                    {
+                        Role = DimensionItemRole.VertexAngle,
+                        Value = va.AngleDegrees,
+                        AnchorPoint = va.Vertex,
+                        StartPoint = va.PrevPoint,
+                        EndPoint = va.NextPoint,
+                        Angle = 0,
+                        IsVisible = settings.ShowVertexAngles
+                    });
+                }
+            }
+
             UpdateLayout(settings);
         }
 
@@ -250,10 +285,7 @@ namespace DimensionOverlay.Rendering
 
                 if (dynamicAreaAnchor != null && DimensionLabelManager.IsInViewport(_mapView, dynamicAreaAnchor))
                 {
-                    string areaText = (settings.DimensionStyle == DimensionStyleOption.Numbers_Only)
-                        ? UnitConverter.FormatNumber(areaItem.Value, settings.Precision)
-                        : UnitConverter.FormatArea(areaItem.Value, settings.Precision, areaItem.UnitAbbrev);
-
+                    string areaText = UnitConverter.FormatArea(areaItem.Value, settings.Precision, areaItem.UnitAbbrev);
                     PlaceText(dynamicAreaAnchor, areaText, 0, DimensionItemRole.Area, textColor, haloColor);
                 }
             }
@@ -307,10 +339,8 @@ namespace DimensionOverlay.Rendering
                     // Dynamic anchor: if zoomed in, places label at the midpoint of the VISIBLE piece of the segment
                     var dynamicSegAnchor = DimensionLabelManager.GetDynamicSegmentAnchor(_mapView, a, b, offsetMapUnits);
 
-                    // Format text based on style
-                    string segText = (settings.DimensionStyle == DimensionStyleOption.Numbers_Only)
-                        ? UnitConverter.FormatNumber(segItem.Value, settings.Precision)
-                        : UnitConverter.FormatLength(segItem.Value, settings.Precision, segItem.UnitAbbrev);
+                    // Format text based on style (Numbers_Only shows NUMBER + UNIT)
+                    string segText = UnitConverter.FormatLength(segItem.Value, settings.Precision, segItem.UnitAbbrev);
 
                     if (segItem.Bearing.HasValue && settings.ShowBearings)
                         segText += $"  ({UnitConverter.FormatBearing(segItem.Bearing.Value)})";
@@ -370,7 +400,7 @@ namespace DimensionOverlay.Rendering
                 if (DimensionLabelManager.IsInViewport(_mapView, pt))
                 {
                     string perimText = (settings.DimensionStyle == DimensionStyleOption.Numbers_Only)
-                        ? "P: " + UnitConverter.FormatNumber(perimItem.Value, settings.Precision)
+                        ? UnitConverter.FormatLength(perimItem.Value, settings.Precision, perimItem.UnitAbbrev)
                         : "P: " + UnitConverter.FormatLength(perimItem.Value, settings.Precision, perimItem.UnitAbbrev);
 
                     PlaceText(pt, perimText, 0, DimensionItemRole.Perimeter, textColor, haloColor);
@@ -392,6 +422,50 @@ namespace DimensionOverlay.Rendering
                 if (DimensionLabelManager.IsInViewport(_mapView, pt))
                 {
                     PlaceText(pt, qcItem.DisplayText, 0, DimensionItemRole.Qc, textColor, haloColor);
+                }
+            }
+
+            // 5. Process Vertex Angle Items (Priority 5)
+            if (settings.ShowVertexAngles)
+            {
+                var angleItems = _cachedMeasurements.Items
+                    .Where(i => i.Role == DimensionItemRole.VertexAngle)
+                    .ToList();
+
+                foreach (var ai in angleItems)
+                {
+                    var v = ai.AnchorPoint;
+                    var a = ai.StartPoint;
+                    var b = ai.EndPoint;
+                    if (v == null || a == null || b == null) continue;
+
+                    if (!DimensionLabelManager.IsInViewport(_mapView, v)) continue;
+
+                    // Calculate interior bisector direction for clean label placement
+                    double dx1 = a.X - v.X, dy1 = a.Y - v.Y;
+                    double dx2 = b.X - v.X, dy2 = b.Y - v.Y;
+                    double l1 = Math.Sqrt((dx1 * dx1) + (dy1 * dy1));
+                    double l2 = Math.Sqrt((dx2 * dx2) + (dy2 * dy2));
+
+                    MapPoint labelPt = v;
+                    if (l1 > 1e-7 && l2 > 1e-7)
+                    {
+                        double u1x = dx1 / l1, u1y = dy1 / l1;
+                        double u2x = dx2 / l2, u2y = dy2 / l2;
+                        double bx = u1x + u2x, by = u1y + u2y;
+                        double blen = Math.Sqrt((bx * bx) + (by * by));
+                        if (blen > 1e-6)
+                        {
+                            double offset = Math.Max(12.0, settings.OffsetPixels * 0.9) * mupp;
+                            labelPt = MapPointBuilderEx.CreateMapPoint(
+                                v.X + (bx / blen * offset),
+                                v.Y + (by / blen * offset),
+                                v.SpatialReference);
+                        }
+                    }
+
+                    string angleText = UnitConverter.FormatAngle(ai.Value, settings.Precision);
+                    PlaceText(labelPt, angleText, 0, DimensionItemRole.VertexAngle, textColor, haloColor);
                 }
             }
         }
@@ -455,11 +529,12 @@ namespace DimensionOverlay.Rendering
 
                 var (fontSize, bold) = role switch
                 {
-                    DimensionItemRole.Area      => (11.5, true),
-                    DimensionItemRole.Segment   => (10.0, true),
-                    DimensionItemRole.Perimeter => (9.5,  false),
-                    DimensionItemRole.Qc        => (9.5,  true),
-                    _                           => (9.5,  false)
+                    DimensionItemRole.Area        => (11.5, true),
+                    DimensionItemRole.Segment     => (10.0, true),
+                    DimensionItemRole.Perimeter   => (9.5,  false),
+                    DimensionItemRole.VertexAngle => (9.0,  false),
+                    DimensionItemRole.Qc          => (9.5,  true),
+                    _                             => (9.5,  false)
                 };
 
                 var sym = SymbolFactory.Instance.ConstructTextSymbol(

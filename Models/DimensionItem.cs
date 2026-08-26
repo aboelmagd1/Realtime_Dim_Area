@@ -7,7 +7,8 @@ namespace DimensionOverlay.Models
         Area = 1,
         Segment = 2,
         Perimeter = 3,
-        Qc = 4
+        Qc = 4,
+        VertexAngle = 5
     }
 
     /// <summary>

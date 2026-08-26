@@ -20,3 +20,4 @@ D:\Learning\Realtime Dim Area\obj\Release\DimensionOverlay.dll
 D:\Learning\Realtime Dim Area\obj\Release\refint\DimensionOverlay.dll
 D:\Learning\Realtime Dim Area\obj\Release\DimensionOverlay.pdb
 D:\Learning\Realtime Dim Area\obj\Release\ref\DimensionOverlay.dll
+D:\Learning\Realtime Dim Area\obj\Release\DimensionOverlay.sourcelink.json

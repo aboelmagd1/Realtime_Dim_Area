@@ -84,6 +84,9 @@ namespace DimensionOverlay.Utilities
         public static string FormatBearing(double degrees)
             => degrees.ToString("N1", CultureInfo.InvariantCulture) + "\u00B0";
 
+        public static string FormatAngle(double degrees, int precision)
+            => degrees.ToString("N" + Math.Max(0, precision), CultureInfo.InvariantCulture) + "\u00B0";
+
         // ── Private helpers ───────────────────────────────────────────────────────
 
         private static double ToMeters(double val, string abbrev)

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "d:\\Learning\\Realtime Dim Area\\DimensionOverlay.csproj": {}
+    "D:\\Learning\\Realtime Dim Area\\DimensionOverlay.csproj": {}
   },
   "projects": {
-    "d:\\Learning\\Realtime Dim Area\\DimensionOverlay.csproj": {
+    "D:\\Learning\\Realtime Dim Area\\DimensionOverlay.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "d:\\Learning\\Realtime Dim Area\\DimensionOverlay.csproj",
+        "projectUniqueName": "D:\\Learning\\Realtime Dim Area\\DimensionOverlay.csproj",
         "projectName": "DimensionOverlay",
-        "projectPath": "d:\\Learning\\Realtime Dim Area\\DimensionOverlay.csproj",
+        "projectPath": "D:\\Learning\\Realtime Dim Area\\DimensionOverlay.csproj",
         "packagesPath": "C:\\Users\\maboe\\.nuget\\packages\\",
-        "outputPath": "d:\\Learning\\Realtime Dim Area\\obj\\",
+        "outputPath": "D:\\Learning\\Realtime Dim Area\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"

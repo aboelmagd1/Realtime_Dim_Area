@@ -33,9 +33,12 @@ namespace DimensionOverlay
 
         protected override bool Initialize()
         {
-            Trace.WriteLine("[DIM] Module1 Initialize: Starting Dynamic Dimension Overlay");
+            Trace.WriteLine("[DIM] Module1 Initialize: Starting Dynamic Dimension Overlay (Default: OFF)");
             _engine = new DimensionEngine();
-            _engine.Enable(); // Start monitoring immediately
+            if (Settings.IsEnabled)
+            {
+                _engine.Enable();
+            }
 
             _monitor = new EditingMonitor(_engine);
             _monitor.Start();

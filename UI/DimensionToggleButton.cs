@@ -29,8 +29,8 @@ namespace DimensionOverlay.UI
             }
             else
             {
-                IsChecked = true;
-                UpdateAppearance(true);
+                IsChecked = false;
+                UpdateAppearance(false);
             }
         }
 
@@ -58,7 +58,7 @@ namespace DimensionOverlay.UI
 
         protected override void OnUpdate()
         {
-            var isEnabled = Module1.Current?.Settings?.IsEnabled ?? true;
+            var isEnabled = Module1.Current?.Settings?.IsEnabled ?? false;
             if (IsChecked != isEnabled)
             {
                 IsChecked = isEnabled;

@@ -1,0 +1,84 @@
+# ====================================================================
+# .gitignore for ArcGIS Pro .NET Add-in (C# / .NET 8 / Visual Studio)
+# ====================================================================
+
+# ── Build & Intermediate Output Folders ────────────────────────────
+obj/
+[Oo]bj/
+x64/
+x86/
+[Aa]rm/
+[Aa]rm64/
+bld/
+[Bb]uild/
+out/
+[Tt]est[Rr]esults/
+esri_addin_staging/
+
+# ── Binaries & Intermediate files ──────────────────────────────────
+bin/
+[Bb]in/
+[Dd]ebug/
+[Rr]elease/
+
+# ── Allow Pre-built Release Add-in Package for direct testing ──────
+!*.esriAddinX
+!Addin_Package/
+!Addin_Package/**
+
+# ── Backups & Scratch Folders ──────────────────────────────────────
+bin - Copy/
+draft/
+backup/
+Backup/
+scratch/
+temp/
+Temp/
+tmp/
+Tmp/
+
+# ── Visual Studio & IDEs ───────────────────────────────────────────
+.vs/
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+*.launch
+*.VC.db
+*.opendb
+*.pidb
+*.booproj
+*.svclog
+
+# ── NuGet & Package Caches ─────────────────────────────────────────
+packages/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# ── Log Files & Crash Dumps ────────────────────────────────────────
+*.log
+*.tlog
+*.dmp
+*.stackdump
+
+# ── OS Generated Files ─────────────────────────────────────────────
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# ── ArcGIS Pro Specific Temporary Artifacts ────────────────────────
+*.esriAddinX.zip
+*.aprx.bak
+*.gdb.lock

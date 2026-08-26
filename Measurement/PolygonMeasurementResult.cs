@@ -4,6 +4,25 @@ using ArcGIS.Core.Geometry;
 namespace DimensionOverlay.Measurement
 {
     /// <summary>
+    /// Represents an angle measurement at a vertex between two consecutive segments.
+    /// </summary>
+    public sealed class VertexAngleMeasurement
+    {
+        public MapPoint Vertex { get; }
+        public double AngleDegrees { get; }
+        public MapPoint PrevPoint { get; }
+        public MapPoint NextPoint { get; }
+
+        public VertexAngleMeasurement(MapPoint vertex, double angleDegrees, MapPoint prevPoint, MapPoint nextPoint)
+        {
+            Vertex = vertex;
+            AngleDegrees = angleDegrees;
+            PrevPoint = prevPoint;
+            NextPoint = nextPoint;
+        }
+    }
+
+    /// <summary>
     /// Immutable snapshot of all measurement data for a polygon sketch.
     /// Produced by GeometryMeasurementService and passed to DimensionOverlayManager.
     /// </summary>
@@ -14,6 +33,9 @@ namespace DimensionOverlay.Measurement
 
         /// <summary>All boundary segments across all polygon parts.</summary>
         public List<SegmentMeasurement> Segments { get; }
+
+        /// <summary>All measured vertex angles between consecutive segments.</summary>
+        public List<VertexAngleMeasurement> VertexAngles { get; }
 
         /// <summary>Total area converted to the user's display unit.</summary>
         public double DisplayArea { get; }
@@ -46,15 +68,17 @@ namespace DimensionOverlay.Measurement
             List<SegmentMeasurement> segments,
             double displayArea, string areaUnitAbbrev,
             double displayPerimeter, string linearUnitAbbrev,
-            MapPoint interiorLabelPoint)
+            MapPoint interiorLabelPoint,
+            List<VertexAngleMeasurement> vertexAngles = null)
         {
-            SourcePolygon     = sourcePolygon;
-            Segments          = segments;
-            DisplayArea       = displayArea;
-            AreaUnitAbbrev    = areaUnitAbbrev;
-            DisplayPerimeter  = displayPerimeter;
-            LinearUnitAbbrev  = linearUnitAbbrev;
+            SourcePolygon      = sourcePolygon;
+            Segments           = segments;
+            DisplayArea        = displayArea;
+            AreaUnitAbbrev     = areaUnitAbbrev;
+            DisplayPerimeter   = displayPerimeter;
+            LinearUnitAbbrev   = linearUnitAbbrev;
             InteriorLabelPoint = interiorLabelPoint;
+            VertexAngles       = vertexAngles ?? new List<VertexAngleMeasurement>();
         }
     }
 
@@ -65,6 +89,7 @@ namespace DimensionOverlay.Measurement
     {
         public Polyline SourcePolyline { get; }
         public List<SegmentMeasurement> Segments { get; }
+        public List<VertexAngleMeasurement> VertexAngles { get; }
         public double DisplayTotalLength { get; }
         public string LinearUnitAbbrev { get; }
 
@@ -72,12 +97,14 @@ namespace DimensionOverlay.Measurement
             Polyline sourcePolyline,
             List<SegmentMeasurement> segments,
             double displayTotalLength,
-            string linearUnitAbbrev)
+            string linearUnitAbbrev,
+            List<VertexAngleMeasurement> vertexAngles = null)
         {
             SourcePolyline     = sourcePolyline;
             Segments           = segments;
             DisplayTotalLength = displayTotalLength;
             LinearUnitAbbrev   = linearUnitAbbrev;
+            VertexAngles       = vertexAngles ?? new List<VertexAngleMeasurement>();
         }
     }
 }

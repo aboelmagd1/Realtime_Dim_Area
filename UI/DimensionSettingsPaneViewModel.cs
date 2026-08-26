@@ -103,9 +103,8 @@ namespace DimensionOverlay.UI
 
                         return map.GetLayersAsFlattenedList()
                             .OfType<FeatureLayer>()
-                            .Where(l => (l.ShapeType == esriGeometryType.esriGeometryPolygon ||
-                                         l.ShapeType == esriGeometryType.esriGeometryPolyline) &&
-                                        !LayerHelper.IsHttpServiceLayer(l))
+                            .Where(l => l.ShapeType == esriGeometryType.esriGeometryPolygon ||
+                                        l.ShapeType == esriGeometryType.esriGeometryPolyline)
                             .ToList();
                     }
                     catch

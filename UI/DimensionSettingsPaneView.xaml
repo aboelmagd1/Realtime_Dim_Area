@@ -51,6 +51,16 @@
                 </StackPanel>
             </GroupBox>
 
+            <!-- ── Service Layers ───────────────────────────── -->
+            <GroupBox Header="Service Layers">
+                <StackPanel>
+                    <CheckBox Content="Apply to Service Layers"
+                              IsChecked="{Binding Settings.ApplyToServiceLayers, Mode=TwoWay}"/>
+                    <TextBlock Style="{StaticResource Label}" TextWrapping="Wrap" Foreground="#666" Margin="0,2,0,0"
+                               Text="Allow Dynamic Dimension Overlay to operate on supported ArcGIS service-based layers."/>
+                </StackPanel>
+            </GroupBox>
+
             <!-- ── Display Toggles ───────────────────────────── -->
             <GroupBox Header="Show / Hide">
                 <StackPanel>
@@ -60,6 +70,8 @@
                               IsChecked="{Binding Settings.ShowArea, Mode=TwoWay}"/>
                     <CheckBox Content="Perimeter"
                               IsChecked="{Binding Settings.ShowPerimeter, Mode=TwoWay}"/>
+                    <CheckBox Content="Vertex angles (between segments)"
+                              IsChecked="{Binding Settings.ShowVertexAngles, Mode=TwoWay}"/>
                     <CheckBox Content="Bearing / azimuth per segment"
                               IsChecked="{Binding Settings.ShowBearings, Mode=TwoWay}"/>
                     <CheckBox Content="Area difference (QC)"

@@ -99,9 +99,15 @@ namespace DimensionOverlay.Core
                 var settings = Module1.Current?.Settings;
                 if (settings == null) return;
 
-                if (settings.TargetLayer != null && LayerHelper.IsHttpServiceLayer(settings.TargetLayer))
+                if (settings.TargetLayer != null)
                 {
-                    return;
+                    bool isService = LayerHelper.IsServiceLayer(settings.TargetLayer);
+                    if (isService && !settings.ApplyToServiceLayers)
+                    {
+                        Trace.WriteLine("[DIM] Service Layer Processing = Disabled");
+                        ShowServiceLayerExcludedFeedback(settings.TargetLayer.Name);
+                        return;
+                    }
                 }
 
                 _isSketchActive = true;
@@ -153,11 +159,26 @@ namespace DimensionOverlay.Core
                             {
                                 var polyResult = GeometryMeasurementService.MeasurePolygon(poly, settings);
                                 _overlayManager.UpdateFromPolygon(polyResult, settings);
+
+                                if (polyResult != null)
+                                {
+                                    if (polyResult.Segments != null && polyResult.Segments.Count > 0)
+                                    {
+                                        Trace.WriteLine($"[DIM] Formatted Segment = {UnitConverter.FormatLength(polyResult.Segments[0].DisplayLength, settings.Precision, polyResult.Segments[0].UnitAbbrev)}");
+                                    }
+                                    Trace.WriteLine($"[DIM] Formatted Area = {UnitConverter.FormatArea(polyResult.DisplayArea, settings.Precision, polyResult.AreaUnitAbbrev)}");
+                                    Trace.WriteLine($"[DIM] Formatted Perimeter = {UnitConverter.FormatLength(polyResult.DisplayPerimeter, settings.Precision, polyResult.LinearUnitAbbrev)}");
+                                }
                             }
                             else if (sketch is Polyline line)
                             {
                                 var lineResult = GeometryMeasurementService.MeasurePolyline(line, settings);
                                 _overlayManager.UpdateFromPolyline(lineResult, settings);
+
+                                if (lineResult != null && lineResult.Segments != null && lineResult.Segments.Count > 0)
+                                {
+                                    Trace.WriteLine($"[DIM] Formatted Segment = {UnitConverter.FormatLength(lineResult.Segments[0].DisplayLength, settings.Precision, lineResult.Segments[0].UnitAbbrev)}");
+                                }
                             }
                         }
                         catch (Exception ex)
@@ -326,14 +347,9 @@ namespace DimensionOverlay.Core
                 {
                     target = map.GetLayersAsFlattenedList()
                         .OfType<FeatureLayer>()
-                        .Where(l => !LayerHelper.IsHttpServiceLayer(l))
                         .FirstOrDefault(l => (l.ShapeType == esriGeometryType.esriGeometryPolygon ||
                                              l.ShapeType == esriGeometryType.esriGeometryPolyline) &&
                                             (l.GetSelection()?.GetCount() ?? 0) > 0);
-                }
-                else if (LayerHelper.IsHttpServiceLayer(target))
-                {
-                    return;
                 }
 
                 if (target == null)
@@ -344,6 +360,27 @@ namespace DimensionOverlay.Core
                         _overlayManager?.Clear();
                     }
                     return;
+                }
+
+                bool isService = LayerHelper.IsServiceLayer(target);
+                Trace.WriteLine($"[DIM] Target Layer = {target.Name}");
+                Trace.WriteLine($"[DIM] IsServiceLayer = {isService}");
+
+                if (isService && !settings.ApplyToServiceLayers)
+                {
+                    Trace.WriteLine("[DIM] Service Layer Processing = Disabled");
+                    ShowServiceLayerExcludedFeedback(target.Name);
+                    if (_lastSelectionHash != 0)
+                    {
+                        _lastSelectionHash = 0;
+                        _overlayManager?.Clear();
+                    }
+                    return;
+                }
+
+                if (isService && settings.ApplyToServiceLayers)
+                {
+                    Trace.WriteLine("[DIM] Service Layer Processing = Enabled");
                 }
 
                 var sel = target.GetSelection();
@@ -412,16 +449,60 @@ namespace DimensionOverlay.Core
                 {
                     var polyResult = GeometryMeasurementService.MeasurePolygon(poly, settings);
                     _overlayManager.UpdateFromPolygon(polyResult, settings);
+
+                    if (polyResult != null)
+                    {
+                        if (polyResult.Segments != null && polyResult.Segments.Count > 0)
+                        {
+                            Trace.WriteLine($"[DIM] Formatted Segment = {UnitConverter.FormatLength(polyResult.Segments[0].DisplayLength, settings.Precision, polyResult.Segments[0].UnitAbbrev)}");
+                        }
+                        Trace.WriteLine($"[DIM] Formatted Area = {UnitConverter.FormatArea(polyResult.DisplayArea, settings.Precision, polyResult.AreaUnitAbbrev)}");
+                        Trace.WriteLine($"[DIM] Formatted Perimeter = {UnitConverter.FormatLength(polyResult.DisplayPerimeter, settings.Precision, polyResult.LinearUnitAbbrev)}");
+                    }
                 }
                 else if (geom is Polyline line)
                 {
                     var lineResult = GeometryMeasurementService.MeasurePolyline(line, settings);
                     _overlayManager.UpdateFromPolyline(lineResult, settings);
+
+                    if (lineResult != null && lineResult.Segments != null && lineResult.Segments.Count > 0)
+                    {
+                        Trace.WriteLine($"[DIM] Formatted Segment = {UnitConverter.FormatLength(lineResult.Segments[0].DisplayLength, settings.Precision, lineResult.Segments[0].UnitAbbrev)}");
+                    }
                 }
             }
             catch (Exception ex)
             {
                 Trace.WriteLine($"[DIM] RenderGeometryDirectInternal error: {ex.Message}");
+            }
+        }
+
+        private static string _lastFeedbackLayer;
+        private static DateTime _lastFeedbackTime;
+
+        private static void ShowServiceLayerExcludedFeedback(string layerName)
+        {
+            try
+            {
+                if (_lastFeedbackLayer == layerName && (DateTime.UtcNow - _lastFeedbackTime).TotalSeconds < 4)
+                    return;
+
+                _lastFeedbackLayer = layerName;
+                _lastFeedbackTime = DateTime.UtcNow;
+
+                string msg = "Service layers are excluded. Enable 'Apply to Service Layers' in Settings to use Dynamic Dimension Overlay with this layer.";
+                Trace.WriteLine($"[DIM] {msg}");
+
+                var notification = new ArcGIS.Desktop.Framework.Notification
+                {
+                    Title = "Dynamic Dimension Overlay",
+                    Message = msg
+                };
+                ArcGIS.Desktop.Framework.FrameworkApplication.AddNotification(notification);
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"[DIM] ShowServiceLayerExcludedFeedback error: {ex.Message}");
             }
         }
 
