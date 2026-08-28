@@ -52,7 +52,7 @@ namespace DimensionOverlay.Rendering
             Clear();
             if (result == null || _mapView == null) return;
 
-            double mupp = MapUnitsPerPixel(mapScale);
+            double mpp = DimensionLabelManager.GetMetersPerPixel(mapScale);
 
             bool farZoom = mapScale > FarScale;
             bool medZoom = !farZoom && mapScale > MedScale;
@@ -90,7 +90,7 @@ namespace DimensionOverlay.Rendering
 
                 foreach (var seg in segs)
                 {
-                    DrawSegment(seg, settings, mupp, textColor, haloColor);
+                    DrawSegment(seg, settings, mpp, textColor, haloColor);
                     drawnGraphics++;
                 }
             }
@@ -102,9 +102,10 @@ namespace DimensionOverlay.Rendering
                     ? UnitConverter.FormatLength(result.DisplayPerimeter, settings.Precision, result.LinearUnitAbbrev)
                     : "P: " + UnitConverter.FormatLength(result.DisplayPerimeter, settings.Precision, result.LinearUnitAbbrev);
 
+                var (pDx, pDy) = DimensionLabelManager.MetersToMapDelta(0, -14.0 * mpp, result.InteriorLabelPoint.SpatialReference, result.InteriorLabelPoint.Y);
                 var pt = MapPointBuilderEx.CreateMapPoint(
-                    result.InteriorLabelPoint.X,
-                    result.InteriorLabelPoint.Y - (14.0 * mupp),
+                    result.InteriorLabelPoint.X + pDx,
+                    result.InteriorLabelPoint.Y + pDy,
                     result.InteriorLabelPoint.SpatialReference);
 
                 PlaceText(pt, text, 0, TextRole.Perimeter, textColor, haloColor);
@@ -116,7 +117,7 @@ namespace DimensionOverlay.Rendering
             {
                 foreach (var va in result.VertexAngles)
                 {
-                    DrawVertexAngle(va, settings, mupp, textColor, haloColor);
+                    DrawVertexAngle(va, settings, mpp, textColor, haloColor);
                     drawnGraphics++;
                 }
             }
@@ -126,7 +127,7 @@ namespace DimensionOverlay.Rendering
                  result.InteriorLabelPoint != null &&
                 (result.OriginalDisplayArea.HasValue || result.WithinTolerance.HasValue))
             {
-                DrawQcPanel(result, settings, mupp, textColor, haloColor);
+                DrawQcPanel(result, settings, mpp, textColor, haloColor);
                 drawnGraphics++;
             }
 
@@ -138,7 +139,7 @@ namespace DimensionOverlay.Rendering
             Clear();
             if (result == null || _mapView == null) return;
 
-            double mupp = MapUnitsPerPixel(mapScale);
+            double mpp = DimensionLabelManager.GetMetersPerPixel(mapScale);
             if (mapScale > FarScale) return;
 
             var (textColor, haloColor) = ResolveTextAndHaloColor(settings);
@@ -146,20 +147,20 @@ namespace DimensionOverlay.Rendering
             if (settings.ShowSegmentLength && result.Segments != null)
             {
                 foreach (var seg in result.Segments)
-                    DrawSegment(seg, settings, mupp, textColor, haloColor);
+                    DrawSegment(seg, settings, mpp, textColor, haloColor);
             }
 
             if (settings.ShowVertexAngles && result.VertexAngles != null)
             {
                 foreach (var va in result.VertexAngles)
-                    DrawVertexAngle(va, settings, mupp, textColor, haloColor);
+                    DrawVertexAngle(va, settings, mpp, textColor, haloColor);
             }
         }
 
         private void DrawVertexAngle(
             VertexAngleMeasurement va,
             DimensionSettings settings,
-            double mupp,
+            double mpp,
             CIMColor textColor,
             CIMColor haloColor)
         {
@@ -170,6 +171,16 @@ namespace DimensionOverlay.Rendering
 
             double dx1 = a.X - v.X, dy1 = a.Y - v.Y;
             double dx2 = b.X - v.X, dy2 = b.Y - v.Y;
+
+            var vSr = v.SpatialReference;
+            if (vSr != null && vSr.IsGeographic)
+            {
+                double latRad = (v.Y * Math.PI) / 180.0;
+                double cosLat = Math.Max(0.01, Math.Cos(latRad));
+                dx1 *= cosLat;
+                dx2 *= cosLat;
+            }
+
             double l1 = Math.Sqrt(dx1 * dx1 + dy1 * dy1);
             double l2 = Math.Sqrt(dx2 * dx2 + dy2 * dy2);
 
@@ -182,11 +193,16 @@ namespace DimensionOverlay.Rendering
                 double blen = Math.Sqrt(bx * bx + by * by);
                 if (blen > 1e-6)
                 {
-                    double offset = Math.Max(12.0, settings.OffsetPixels * 0.9) * mupp;
+                    double offsetMeters = Math.Max(12.0, settings.OffsetPixels * 0.9) * mpp;
+                    var (vaDx, vaDy) = DimensionLabelManager.MetersToMapDelta(
+                        (bx / blen) * offsetMeters,
+                        (by / blen) * offsetMeters,
+                        vSr, v.Y);
+
                     labelPt = MapPointBuilderEx.CreateMapPoint(
-                        v.X + (bx / blen * offset),
-                        v.Y + (by / blen * offset),
-                        v.SpatialReference);
+                        v.X + vaDx,
+                        v.Y + vaDy,
+                        vSr);
                 }
             }
 
@@ -199,7 +215,7 @@ namespace DimensionOverlay.Rendering
         private void DrawSegment(
             SegmentMeasurement seg,
             DimensionSettings settings,
-            double mupp,
+            double mpp,
             CIMColor textColor,
             CIMColor haloColor)
         {
@@ -208,13 +224,13 @@ namespace DimensionOverlay.Rendering
             if (a == null || b == null) return;
 
             var (nx, ny)  = DimensionLabelManager.GetOutwardNormal(a, b);
-            double offset = Math.Max(6.0, settings.OffsetPixels) * mupp;
+            double offsetMeters = Math.Max(6.0, settings.OffsetPixels) * mpp;
 
             // ── Style: Numbers Only (Clean Text, No Dimension Lines) ───────────────
             if (settings.DimensionStyle == DimensionStyleOption.Numbers_Only)
             {
                 // Place text neatly offset from the segment midpoint
-                var midOffset = DimensionLabelManager.GetOffsetMidpoint(a, b, offset);
+                var midOffset = DimensionLabelManager.GetOffsetMidpoint(a, b, offsetMeters);
                 double angleDeg = DimensionLabelManager.GetLabelAngle(a, b);
 
                 string text = UnitConverter.FormatLength(
@@ -227,12 +243,18 @@ namespace DimensionOverlay.Rendering
             }
 
             // ── Style: CAD Standard / Minimal / High Contrast ─────────────────────
-            double gap    = 3.0 * mupp;
-            double overhg = 4.0 * mupp;
-            double tick   = 5.0 * mupp;
+            double gapMeters    = 3.0 * mpp;
+            double overhgMeters = 4.0 * mpp;
+            double tickMeters   = 5.0 * mpp;
 
-            var aOff = MapPointBuilderEx.CreateMapPoint(a.X + (nx * offset), a.Y + (ny * offset), a.SpatialReference);
-            var bOff = MapPointBuilderEx.CreateMapPoint(b.X + (nx * offset), b.Y + (ny * offset), b.SpatialReference);
+            var aSr = a.SpatialReference;
+            var bSr = b.SpatialReference;
+
+            var (aOffDx, aOffDy) = DimensionLabelManager.MetersToMapDelta(nx * offsetMeters, ny * offsetMeters, aSr, a.Y);
+            var (bOffDx, bOffDy) = DimensionLabelManager.MetersToMapDelta(nx * offsetMeters, ny * offsetMeters, bSr, b.Y);
+
+            var aOff = MapPointBuilderEx.CreateMapPoint(a.X + aOffDx, a.Y + aOffDy, aSr);
+            var bOff = MapPointBuilderEx.CreateMapPoint(b.X + bOffDx, b.Y + bOffDy, bSr);
 
             var lineColor = StyleLineColor(settings);
             var dimSym = SymbolFactory.Instance.ConstructLineSymbol(lineColor, 1.4);
@@ -244,15 +266,15 @@ namespace DimensionOverlay.Rendering
             // 2. Extension lines (skipped in Minimal style)
             if (settings.DimensionStyle != DimensionStyleOption.Minimal)
             {
-                var (e1f, e1t) = DimensionLabelManager.GetExtensionLine(a, gap, overhg, offset, nx, ny);
-                var (e2f, e2t) = DimensionLabelManager.GetExtensionLine(b, gap, overhg, offset, nx, ny);
+                var (e1f, e1t) = DimensionLabelManager.GetExtensionLine(a, gapMeters, overhgMeters, offsetMeters, nx, ny);
+                var (e2f, e2t) = DimensionLabelManager.GetExtensionLine(b, gapMeters, overhgMeters, offsetMeters, nx, ny);
                 AddLine(e1f, e1t, extSym);
                 AddLine(e2f, e2t, extSym);
             }
 
             // 3. Diagonal slash ticks at endpoints
-            AddSlashTick(aOff, a, b, tick, dimSym);
-            AddSlashTick(bOff, a, b, tick, dimSym);
+            AddSlashTick(aOff, a, b, tickMeters, dimSym);
+            AddSlashTick(bOff, a, b, tickMeters, dimSym);
 
             // 4. Dimension text label at midpoint
             var mid = DimensionLabelManager.GetOffsetMidpoint(aOff, bOff, 0);
@@ -271,7 +293,7 @@ namespace DimensionOverlay.Rendering
         private void DrawQcPanel(
             PolygonMeasurementResult result,
             DimensionSettings settings,
-            double mupp,
+            double mpp,
             CIMColor textColor,
             CIMColor haloColor)
         {
@@ -295,10 +317,11 @@ namespace DimensionOverlay.Rendering
 
             if (lines.Count == 0) return;
 
-            double offsetY = (settings.ShowPerimeter ? 30.0 : 16.0) * mupp;
+            double offsetY = (settings.ShowPerimeter ? 30.0 : 16.0) * mpp;
+            var (qcDx, qcDy) = DimensionLabelManager.MetersToMapDelta(0, -offsetY, result.InteriorLabelPoint.SpatialReference, result.InteriorLabelPoint.Y);
             var pt = MapPointBuilderEx.CreateMapPoint(
-                result.InteriorLabelPoint.X,
-                result.InteriorLabelPoint.Y - offsetY,
+                result.InteriorLabelPoint.X + qcDx,
+                result.InteriorLabelPoint.Y + qcDy,
                 result.InteriorLabelPoint.SpatialReference);
 
             PlaceText(pt, string.Join("\n", lines), 0, TextRole.Qc, textColor, haloColor);
@@ -310,7 +333,18 @@ namespace DimensionOverlay.Rendering
         {
             try
             {
-                var geom = PolylineBuilderEx.CreatePolyline(new[] { from, to }, from.SpatialReference);
+                var sr = from.SpatialReference ?? to.SpatialReference ?? _mapView.Map?.SpatialReference;
+                var geom = PolylineBuilderEx.CreatePolyline(new[] { from, to }, sr);
+                var mapSr = _mapView.Map?.SpatialReference;
+                if (mapSr != null && sr != null && !sr.IsEqual(mapSr))
+                {
+                    try
+                    {
+                        geom = GeometryEngine.Instance.Project(geom, mapSr) as Polyline ?? geom;
+                    }
+                    catch { }
+                }
+
                 var handle = _mapView.AddOverlay(geom, sym.MakeSymbolReference());
                 if (handle != null)
                 {
@@ -323,20 +357,30 @@ namespace DimensionOverlay.Rendering
             }
         }
 
-        private void AddSlashTick(MapPoint offsetPt, MapPoint segA, MapPoint segB, double halfLen, CIMLineSymbol sym)
+        private void AddSlashTick(MapPoint offsetPt, MapPoint segA, MapPoint segB, double halfLenMeters, CIMLineSymbol sym)
         {
             double dx = segB.X - segA.X, dy = segB.Y - segA.Y;
+            var sr = offsetPt.SpatialReference ?? segA.SpatialReference;
+            if (sr != null && sr.IsGeographic)
+            {
+                double midLatRad = (((segA.Y + segB.Y) / 2.0) * Math.PI) / 180.0;
+                double cosLat = Math.Max(0.01, Math.Cos(midLatRad));
+                dx *= cosLat;
+            }
+
             double len = Math.Sqrt((dx * dx) + (dy * dy));
             if (len < 1e-12) return;
 
             double ux = dx / len, uy = dy / len;
             var (nx, ny) = DimensionLabelManager.GetOutwardNormal(segA, segB);
 
-            double tx = (ux + nx) * 0.7071067811865476 * halfLen;
-            double ty = (uy + ny) * 0.7071067811865476 * halfLen;
+            double txMeters = (ux + nx) * 0.7071067811865476 * halfLenMeters;
+            double tyMeters = (uy + ny) * 0.7071067811865476 * halfLenMeters;
 
-            var t1 = MapPointBuilderEx.CreateMapPoint(offsetPt.X + tx, offsetPt.Y + ty, offsetPt.SpatialReference);
-            var t2 = MapPointBuilderEx.CreateMapPoint(offsetPt.X - tx, offsetPt.Y - ty, offsetPt.SpatialReference);
+            var (txMap, tyMap) = DimensionLabelManager.MetersToMapDelta(txMeters, tyMeters, sr, offsetPt.Y);
+
+            var t1 = MapPointBuilderEx.CreateMapPoint(offsetPt.X + txMap, offsetPt.Y + tyMap, sr);
+            var t2 = MapPointBuilderEx.CreateMapPoint(offsetPt.X - txMap, offsetPt.Y - tyMap, sr);
             AddLine(t1, t2, sym);
         }
 
@@ -354,6 +398,17 @@ namespace DimensionOverlay.Rendering
 
             try
             {
+                var mapSr = _mapView.Map?.SpatialReference;
+                var ptSr = at.SpatialReference ?? mapSr;
+                var ptToDraw = (mapSr != null && ptSr != null && !ptSr.IsEqual(mapSr))
+                    ? (GeometryEngine.Instance.Project(at, mapSr) as MapPoint ?? at)
+                    : at;
+
+                if (ptToDraw.SpatialReference == null && mapSr != null)
+                {
+                    ptToDraw = MapPointBuilderEx.CreateMapPoint(ptToDraw.X, ptToDraw.Y, mapSr);
+                }
+
                 var (fontSize, bold) = role switch
                 {
                     TextRole.Area        => (11.5, true),
@@ -367,8 +422,8 @@ namespace DimensionOverlay.Rendering
                 var sym = SymbolFactory.Instance.ConstructTextSymbol(
                     textColor, fontSize, "Segoe UI", bold ? "Bold" : "Regular");
                 sym.Angle               = angleDeg;
-                sym.HorizontalAlignment = HorizontalAlignment.Center;
-                sym.VerticalAlignment   = VerticalAlignment.Center;
+                sym.HorizontalAlignment = ArcGIS.Core.CIM.HorizontalAlignment.Center;
+                sym.VerticalAlignment   = ArcGIS.Core.CIM.VerticalAlignment.Center;
                 sym.HaloSize            = 2.2;
                 sym.HaloSymbol          = SymbolFactory.Instance.ConstructPolygonSymbol(haloColor);
 
@@ -376,7 +431,7 @@ namespace DimensionOverlay.Rendering
                 {
                     Text   = text,
                     Symbol = sym.MakeSymbolReference(),
-                    Shape  = at
+                    Shape  = ptToDraw
                 };
 
                 var handle = _mapView.AddOverlay(textGraphic);
@@ -425,9 +480,7 @@ namespace DimensionOverlay.Rendering
             };
         }
 
-        private static double MapUnitsPerPixel(double mapScale)
-            => (mapScale / 96.0) * 0.0254;
-
         public void Dispose() => Clear();
     }
 }
+

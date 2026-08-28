@@ -146,18 +146,19 @@ namespace DimensionOverlay.Core
                             var settings = Module1.Current?.Settings;
                             if (settings == null) return;
 
-                            var sr = sketch.SpatialReference;
+                            var mapSr = view.Map?.SpatialReference;
+                            var sr = sketch.SpatialReference ?? mapSr;
                             if (sr != null)
                             {
                                 settings.CrsName = sr.Name ?? "Unknown";
                                 settings.Wkid = sr.Wkid;
-                                bool geo = GeometryMeasurementService.ResolveGeodesic(settings.Method, sr);
+                                bool geo = GeometryMeasurementService.ResolveGeodesic(settings.Method, sr, mapSr);
                                 settings.ResolvedMethod = geo ? "Geodesic" : "Planar";
                             }
 
                             if (sketch is Polygon poly)
                             {
-                                var polyResult = GeometryMeasurementService.MeasurePolygon(poly, settings);
+                                var polyResult = GeometryMeasurementService.MeasurePolygon(poly, settings, mapSr);
                                 _overlayManager.UpdateFromPolygon(polyResult, settings);
 
                                 if (polyResult != null)
@@ -172,7 +173,7 @@ namespace DimensionOverlay.Core
                             }
                             else if (sketch is Polyline line)
                             {
-                                var lineResult = GeometryMeasurementService.MeasurePolyline(line, settings);
+                                var lineResult = GeometryMeasurementService.MeasurePolyline(line, settings, mapSr);
                                 _overlayManager.UpdateFromPolyline(lineResult, settings);
 
                                 if (lineResult != null && lineResult.Segments != null && lineResult.Segments.Count > 0)
@@ -436,18 +437,19 @@ namespace DimensionOverlay.Core
             {
                 EnsureOverlayManager(mapView);
 
-                var sr = geom.SpatialReference;
+                var mapSr = mapView.Map?.SpatialReference;
+                var sr = geom.SpatialReference ?? mapSr;
                 if (sr != null)
                 {
                     settings.CrsName = sr.Name ?? "Unknown";
                     settings.Wkid = sr.Wkid;
-                    bool geo = GeometryMeasurementService.ResolveGeodesic(settings.Method, sr);
+                    bool geo = GeometryMeasurementService.ResolveGeodesic(settings.Method, sr, mapSr);
                     settings.ResolvedMethod = geo ? "Geodesic" : "Planar";
                 }
 
                 if (geom is Polygon poly)
                 {
-                    var polyResult = GeometryMeasurementService.MeasurePolygon(poly, settings);
+                    var polyResult = GeometryMeasurementService.MeasurePolygon(poly, settings, mapSr);
                     _overlayManager.UpdateFromPolygon(polyResult, settings);
 
                     if (polyResult != null)
@@ -462,7 +464,7 @@ namespace DimensionOverlay.Core
                 }
                 else if (geom is Polyline line)
                 {
-                    var lineResult = GeometryMeasurementService.MeasurePolyline(line, settings);
+                    var lineResult = GeometryMeasurementService.MeasurePolyline(line, settings, mapSr);
                     _overlayManager.UpdateFromPolyline(lineResult, settings);
 
                     if (lineResult != null && lineResult.Segments != null && lineResult.Segments.Count > 0)
