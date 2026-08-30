@@ -8,11 +8,11 @@ using ArcGIS.Core.Data;
 using ArcGIS.Core.Geometry;
 using ArcGIS.Desktop.Framework.Threading.Tasks;
 using ArcGIS.Desktop.Mapping;
-using DimensionOverlay.Measurement;
-using DimensionOverlay.Rendering;
-using DimensionOverlay.Utilities;
+using GeoMetrics.Measurement;
+using GeoMetrics.Rendering;
+using GeoMetrics.Utilities;
 
-namespace DimensionOverlay.Core
+namespace GeoMetrics.Core
 {
     /// <summary>
     /// PASSIVE real-time dimension monitoring engine.
@@ -30,7 +30,7 @@ namespace DimensionOverlay.Core
         private bool _disposed;
         private bool _isSketchActive;
 
-        private DimensionOverlayManager _overlayManager;
+        private GeoMetricsOverlayManager _overlayManager;
         private MapView _overlayView;
 
         private int _lastSelectionHash;
@@ -43,6 +43,9 @@ namespace DimensionOverlay.Core
         // Frame-coalescing state for camera navigation (pan/zoom)
         private volatile MapView _latestCameraMapView;
         private int _isProcessingCameraChange;
+
+        // Tracks initial polygon area at the start of an edit sketch for before/after comparison
+        private double? _initialPolygonArea;
 
         public DimensionEngine()
         {
@@ -159,6 +162,15 @@ namespace DimensionOverlay.Core
                             if (sketch is Polygon poly)
                             {
                                 var polyResult = GeometryMeasurementService.MeasurePolygon(poly, settings, mapSr);
+                                if (polyResult != null)
+                                {
+                                    if (!_initialPolygonArea.HasValue)
+                                    {
+                                        _initialPolygonArea = polyResult.DisplayArea;
+                                    }
+                                    polyResult.OriginalDisplayArea = _initialPolygonArea;
+                                }
+
                                 _overlayManager.UpdateFromPolygon(polyResult, settings);
 
                                 if (polyResult != null)
@@ -215,6 +227,7 @@ namespace DimensionOverlay.Core
             try
             {
                 _isSketchActive = false;
+                _initialPolygonArea = null;
                 _lastSelectionHash = 0;
                 _latestSketchGeometry = null;
                 Task.Delay(150).ContinueWith(_ => RefreshSelectionDisplay());
@@ -492,12 +505,12 @@ namespace DimensionOverlay.Core
                 _lastFeedbackLayer = layerName;
                 _lastFeedbackTime = DateTime.UtcNow;
 
-                string msg = "Service layers are excluded. Enable 'Apply to Service Layers' in Settings to use Dynamic Dimension Overlay with this layer.";
+                string msg = "Service layers are excluded. Enable 'Apply to Service Layers' in Settings to use GeoMetrics with this layer.";
                 Trace.WriteLine($"[DIM] {msg}");
 
                 var notification = new ArcGIS.Desktop.Framework.Notification
                 {
-                    Title = "Dynamic Dimension Overlay",
+                    Title = "GeoMetrics",
                     Message = msg
                 };
                 ArcGIS.Desktop.Framework.FrameworkApplication.AddNotification(notification);
@@ -514,6 +527,7 @@ namespace DimensionOverlay.Core
         {
             _lastSelectionHash = 0;
             _isSketchActive = false;
+            _initialPolygonArea = null;
             _latestSketchGeometry = null;
             _latestCameraMapView = null;
 
@@ -535,7 +549,7 @@ namespace DimensionOverlay.Core
             if (_overlayManager == null || _overlayView != view)
             {
                 try { _overlayManager?.Dispose(); } catch { }
-                _overlayManager = new DimensionOverlayManager(view);
+                _overlayManager = new GeoMetricsOverlayManager(view);
                 _overlayView = view;
             }
         }

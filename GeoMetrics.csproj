@@ -5,8 +5,8 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>false</UseWindowsForms>
-    <RootNamespace>DimensionOverlay</RootNamespace>
-    <AssemblyName>DimensionOverlay</AssemblyName>
+    <RootNamespace>GeoMetrics</RootNamespace>
+    <AssemblyName>GeoMetrics</AssemblyName>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>

@@ -3,7 +3,7 @@ using System.Diagnostics;
 using ArcGIS.Core.CIM;
 using ArcGIS.Desktop.Mapping;
 
-namespace DimensionOverlay.Utilities
+namespace GeoMetrics.Utilities
 {
     /// <summary>
     /// Utility methods for inspecting layers, data sources, and connection properties.

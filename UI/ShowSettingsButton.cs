@@ -1,6 +1,6 @@
 using ArcGIS.Desktop.Framework.Contracts;
 
-namespace DimensionOverlay.UI
+namespace GeoMetrics.UI
 {
     /// <summary>Button in the ribbon that opens the Settings Dock Pane.</summary>
     internal class ShowSettingsButton : Button

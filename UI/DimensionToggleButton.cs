@@ -1,9 +1,9 @@
 using ArcGIS.Desktop.Framework.Contracts;
 
-namespace DimensionOverlay.UI
+namespace GeoMetrics.UI
 {
     /// <summary>
-    /// Toggle button on the ribbon for Dynamic Dimensions monitoring.
+    /// Toggle button on the ribbon for GeoMetrics monitoring.
     /// Synchronizes bidirectionally with DimensionSettings.IsEnabled and provides
     /// direct ON / OFF control from the top ribbon bar.
     /// </summary>
@@ -69,10 +69,10 @@ namespace DimensionOverlay.UI
 
         private void UpdateAppearance(bool isEnabled)
         {
-            Caption = isEnabled ? "Dynamic Dimensions (ON)" : "Dynamic Dimensions (OFF)";
+            Caption = isEnabled ? "GeoMetrics (ON)" : "GeoMetrics (OFF)";
             Tooltip = isEnabled
-                ? "Dynamic Dimensions is ON. Dimensions update live during editing and selection. Click to turn OFF."
-                : "Dynamic Dimensions is OFF. Click to turn ON real-time dimensions.";
+                ? "GeoMetrics is ON. Measurements update live during editing and selection. Click to turn OFF."
+                : "GeoMetrics is OFF. Click to turn ON real-time measurements.";
         }
     }
 }

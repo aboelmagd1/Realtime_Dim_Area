@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using ArcGIS.Core.Geometry;
 
-namespace DimensionOverlay.Measurement
+namespace GeoMetrics.Measurement
 {
     /// <summary>
     /// Represents an angle measurement at a vertex between two consecutive segments.
@@ -24,7 +24,7 @@ namespace DimensionOverlay.Measurement
 
     /// <summary>
     /// Immutable snapshot of all measurement data for a polygon sketch.
-    /// Produced by GeometryMeasurementService and passed to DimensionOverlayManager.
+    /// Produced by GeometryMeasurementService and passed to GeoMetricsOverlayManager.
     /// </summary>
     public sealed class PolygonMeasurementResult
     {

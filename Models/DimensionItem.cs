@@ -1,6 +1,6 @@
 using ArcGIS.Core.Geometry;
 
-namespace DimensionOverlay.Models
+namespace GeoMetrics.Models
 {
     public enum DimensionItemRole
     {
@@ -8,7 +8,8 @@ namespace DimensionOverlay.Models
         Segment = 2,
         Perimeter = 3,
         Qc = 4,
-        VertexAngle = 5
+        VertexAngle = 5,
+        VertexCoordinate = 6
     }
 
     /// <summary>

@@ -1,10 +1,10 @@
 using System.Diagnostics;
 using ArcGIS.Desktop.Framework;
 using ArcGIS.Desktop.Framework.Contracts;
-using DimensionOverlay.Core;
-using DimensionOverlay.Models;
+using GeoMetrics.Core;
+using GeoMetrics.Models;
 
-namespace DimensionOverlay
+namespace GeoMetrics
 {
     /// <summary>
     /// Module entry point. Owns the DimensionSettings singleton and manages
@@ -18,7 +18,7 @@ namespace DimensionOverlay
         private static Module1 _this;
 
         public static Module1 Current =>
-            _this ??= (Module1)FrameworkApplication.FindModule("DimensionOverlay_Module");
+            _this ??= (Module1)FrameworkApplication.FindModule("GeoMetrics_Module");
 
         /// <summary>Shared user settings — read by the engine, renderer, and settings pane.</summary>
         public DimensionSettings Settings { get; } = new DimensionSettings();
@@ -33,7 +33,7 @@ namespace DimensionOverlay
 
         protected override bool Initialize()
         {
-            Trace.WriteLine("[DIM] Module1 Initialize: Starting Dynamic Dimension Overlay (Default: OFF)");
+            Trace.WriteLine("[DIM] Module1 Initialize: Starting GeoMetrics (Default: OFF)");
             _engine = new DimensionEngine();
             if (Settings.IsEnabled)
             {

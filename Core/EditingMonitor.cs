@@ -4,7 +4,7 @@ using ArcGIS.Core.Events;
 using ArcGIS.Desktop.Mapping;
 using ArcGIS.Desktop.Mapping.Events;
 
-namespace DimensionOverlay.Core
+namespace GeoMetrics.Core
 {
     /// <summary>
     /// Subscribes directly to ArcGIS Pro mapping, camera, and sketch events.

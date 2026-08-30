@@ -5,14 +5,14 @@ using System.Linq;
 using ArcGIS.Core.CIM;
 using ArcGIS.Core.Geometry;
 using ArcGIS.Desktop.Mapping;
-using DimensionOverlay.Measurement;
-using DimensionOverlay.Models;
-using DimensionOverlay.Utilities;
+using GeoMetrics.Measurement;
+using GeoMetrics.Models;
+using GeoMetrics.Utilities;
 
-namespace DimensionOverlay.Rendering
+namespace GeoMetrics.Rendering
 {
     /// <summary>
-    /// Centralized manager for dynamic dimension overlay rendering and lifecycle.
+    /// Centralized manager for GeoMetrics overlay rendering and lifecycle.
     ///
     /// ARCHITECTURE:
     /// - Separates GEOMETRY MEASUREMENT from VIEWPORT LAYOUT.
@@ -22,7 +22,7 @@ namespace DimensionOverlay.Rendering
     ///   dynamic segment midpoints along visible line sections, screen-pixel offsets, rotation angles, and visibility.
     /// - Handles all MapView overlay graphic handles cleanly without leaking.
     /// </summary>
-    internal sealed class DimensionOverlayManager : IDisposable
+    internal sealed class GeoMetricsOverlayManager : IDisposable
     {
         private readonly MapView _mapView;
         private readonly List<IDisposable> _handles = new();
@@ -32,7 +32,7 @@ namespace DimensionOverlay.Rendering
         private const double FarScale = 50_000;
         private const double MedScale = 10_000;
 
-        public DimensionOverlayManager(MapView mapView)
+        public GeoMetricsOverlayManager(MapView mapView)
         {
             _mapView = mapView ?? throw new ArgumentNullException(nameof(mapView));
         }
@@ -152,38 +152,65 @@ namespace DimensionOverlay.Rendering
                 }
             }
 
-            // 5. QC Item
-            if ((settings.ShowAreaDifference || settings.ShowToleranceStatus) &&
+            // 5. Area Difference (Before & After Edit)
+            if (settings.ShowAreaDifference &&
                 result.InteriorLabelPoint != null &&
-                (result.OriginalDisplayArea.HasValue || result.WithinTolerance.HasValue))
+                result.OriginalDisplayArea.HasValue)
             {
                 var lines = new List<string>();
-                if (settings.ShowAreaDifference && result.OriginalDisplayArea.HasValue)
+                double orig = result.OriginalDisplayArea.Value;
+                double curr = result.DisplayArea;
+                double diff = curr - orig;
+                double pct  = orig > 0 ? (diff / orig) * 100.0 : 0;
+                string sign = diff >= 0 ? "+" : "";
+
+                lines.Add("Before: " + UnitConverter.FormatArea(orig, settings.Precision, result.AreaUnitAbbrev));
+                lines.Add("Current: " + UnitConverter.FormatArea(curr, settings.Precision, result.AreaUnitAbbrev));
+                lines.Add($"\u0394: {sign}{UnitConverter.FormatArea(Math.Abs(diff), settings.Precision, result.AreaUnitAbbrev)} ({sign}{pct:F1}%)");
+
+                _cachedMeasurements.Items.Add(new DimensionItem
                 {
-                    double orig = result.OriginalDisplayArea.Value;
-                    double curr = result.DisplayArea;
-                    double diff = curr - orig;
-                    double pct  = orig > 0 ? (diff / orig) * 100.0 : 0;
-                    string sign = diff >= 0 ? "+" : "";
+                    Role = DimensionItemRole.Qc,
+                    DisplayText = string.Join("\n", lines),
+                    AnchorPoint = result.InteriorLabelPoint,
+                    Angle = 0,
+                    IsVisible = true
+                });
+            }
 
-                    lines.Add("Orig: " + UnitConverter.FormatArea(orig, settings.Precision, result.AreaUnitAbbrev));
-                    lines.Add("Curr: " + UnitConverter.FormatArea(curr, settings.Precision, result.AreaUnitAbbrev));
-                    lines.Add($"\u0394 {sign}{UnitConverter.FormatArea(Math.Abs(diff), settings.Precision, result.AreaUnitAbbrev)} ({sign}{pct:F1}%)");
-                }
-
-                if (settings.ShowToleranceStatus && result.WithinTolerance.HasValue)
-                    lines.Add(result.WithinTolerance.Value ? "\u2713 Within Tolerance" : "\u26A0 Exceeds Tolerance");
-
-                if (lines.Count > 0)
+            // 6. Vertex Coordinates
+            if (result.SourcePolygon != null && result.SourcePolygon.Parts != null)
+            {
+                foreach (var part in result.SourcePolygon.Parts)
                 {
-                    _cachedMeasurements.Items.Add(new DimensionItem
+                    var pts = new List<MapPoint>();
+                    var polySr = result.SourcePolygon.SpatialReference ?? _cachedMeasurements.SpatialReference;
+                    foreach (var seg in part)
                     {
-                        Role = DimensionItemRole.Qc,
-                        DisplayText = string.Join("\n", lines),
-                        AnchorPoint = result.InteriorLabelPoint,
-                        Angle = 0,
-                        IsVisible = true
-                    });
+                        var sp = seg.StartPoint;
+                        if (sp.SpatialReference == null && polySr != null)
+                            sp = MapPointBuilderEx.CreateMapPoint(sp.X, sp.Y, polySr);
+                        pts.Add(sp);
+                    }
+                    int k = pts.Count;
+                    if (k > 0 && Math.Abs(pts[0].X - pts[k - 1].X) < 1e-7 && Math.Abs(pts[0].Y - pts[k - 1].Y) < 1e-7)
+                        k--;
+
+                    for (int i = 0; i < k; i++)
+                    {
+                        var v = pts[i];
+                        var a = pts[(i - 1 + k) % k];
+                        var b = pts[(i + 1) % k];
+                        _cachedMeasurements.Items.Add(new DimensionItem
+                        {
+                            Role = DimensionItemRole.VertexCoordinate,
+                            AnchorPoint = v,
+                            StartPoint = a,
+                            EndPoint = b,
+                            Angle = 0,
+                            IsVisible = settings.ShowVertexCoordinates
+                        });
+                    }
                 }
             }
 
@@ -239,6 +266,44 @@ namespace DimensionOverlay.Rendering
                         Angle = 0,
                         IsVisible = settings.ShowVertexAngles
                     });
+                }
+            }
+
+            if (result.SourcePolyline != null && result.SourcePolyline.Parts != null)
+            {
+                foreach (var part in result.SourcePolyline.Parts)
+                {
+                    var pts = new List<MapPoint>();
+                    foreach (var seg in part)
+                    {
+                        var sp = seg.StartPoint;
+                        if (sp.SpatialReference == null && result.SourcePolyline.SpatialReference != null)
+                            sp = MapPointBuilderEx.CreateMapPoint(sp.X, sp.Y, result.SourcePolyline.SpatialReference);
+                        pts.Add(sp);
+                    }
+                    if (part.Count > 0)
+                    {
+                        var ep = part[part.Count - 1].EndPoint;
+                        if (ep.SpatialReference == null && result.SourcePolyline.SpatialReference != null)
+                            ep = MapPointBuilderEx.CreateMapPoint(ep.X, ep.Y, result.SourcePolyline.SpatialReference);
+                        pts.Add(ep);
+                    }
+
+                    for (int i = 0; i < pts.Count; i++)
+                    {
+                        var v = pts[i];
+                        var a = i > 0 ? pts[i - 1] : null;
+                        var b = i < pts.Count - 1 ? pts[i + 1] : null;
+                        _cachedMeasurements.Items.Add(new DimensionItem
+                        {
+                            Role = DimensionItemRole.VertexCoordinate,
+                            AnchorPoint = v,
+                            StartPoint = a,
+                            EndPoint = b,
+                            Angle = 0,
+                            IsVisible = settings.ShowVertexCoordinates
+                        });
+                    }
                 }
             }
 
@@ -491,6 +556,86 @@ namespace DimensionOverlay.Rendering
                     PlaceText(labelPt, angleText, 0, DimensionItemRole.VertexAngle, textColor, haloColor);
                 }
             }
+
+            // 6. Process Vertex Coordinate Items (Priority 6)
+            if (settings.ShowVertexCoordinates)
+            {
+                var coordItems = _cachedMeasurements.Items
+                    .Where(i => i.Role == DimensionItemRole.VertexCoordinate)
+                    .ToList();
+
+                foreach (var ci in coordItems)
+                {
+                    var v = ci.AnchorPoint;
+                    if (v == null) continue;
+
+                    if (!DimensionLabelManager.IsInViewport(_mapView, v)) continue;
+
+                    var a = ci.StartPoint;
+                    var b = ci.EndPoint;
+                    var vSr = v.SpatialReference ?? _cachedMeasurements.SpatialReference ?? _mapView.Map?.SpatialReference;
+                    bool isGeo = vSr != null && vSr.IsGeographic;
+
+                    MapPoint labelPt = v;
+                    double offsetMeters = Math.Max(16.0, settings.OffsetPixels * 1.1) * mpp;
+
+                    if (a != null && b != null)
+                    {
+                        // Corner vertex: use exterior bisector direction (opposite to interior)
+                        double dx1 = a.X - v.X, dy1 = a.Y - v.Y;
+                        double dx2 = b.X - v.X, dy2 = b.Y - v.Y;
+
+                        if (isGeo)
+                        {
+                            double latRad = (v.Y * Math.PI) / 180.0;
+                            double cosLat = Math.Max(0.01, Math.Cos(latRad));
+                            dx1 *= cosLat;
+                            dx2 *= cosLat;
+                        }
+
+                        double l1 = Math.Sqrt((dx1 * dx1) + (dy1 * dy1));
+                        double l2 = Math.Sqrt((dx2 * dx2) + (dy2 * dy2));
+
+                        if (l1 > 1e-7 && l2 > 1e-7)
+                        {
+                            double u1x = dx1 / l1, u1y = dy1 / l1;
+                            double u2x = dx2 / l2, u2y = dy2 / l2;
+                            double bx = u1x + u2x, by = u1y + u2y;
+                            double blen = Math.Sqrt((bx * bx) + (by * by));
+                            if (blen > 1e-6)
+                            {
+                                // Exterior direction: -bx, -by
+                                var (vcDx, vcDy) = DimensionLabelManager.MetersToMapDelta(
+                                    (-bx / blen) * offsetMeters,
+                                    (-by / blen) * offsetMeters,
+                                    vSr, v.Y);
+
+                                labelPt = MapPointBuilderEx.CreateMapPoint(v.X + vcDx, v.Y + vcDy, vSr);
+                            }
+                        }
+                    }
+                    else if (a != null || b != null)
+                    {
+                        // Endpoint of a polyline: offset normal to the adjacent segment
+                        var other = a ?? b;
+                        var (nx, ny) = DimensionLabelManager.GetOutwardNormal(v, other);
+                        var (vcDx, vcDy) = DimensionLabelManager.MetersToMapDelta(nx * offsetMeters, ny * offsetMeters, vSr, v.Y);
+                        labelPt = MapPointBuilderEx.CreateMapPoint(v.X + vcDx, v.Y + vcDy, vSr);
+                    }
+                    else
+                    {
+                        var (vcDx, vcDy) = DimensionLabelManager.MetersToMapDelta(offsetMeters * 0.707, offsetMeters * 0.707, vSr, v.Y);
+                        labelPt = MapPointBuilderEx.CreateMapPoint(v.X + vcDx, v.Y + vcDy, vSr);
+                    }
+
+                    int p = settings.CoordinatePrecision;
+                    string coordText = isGeo
+                        ? $"X: {v.X.ToString($"F{p}", System.Globalization.CultureInfo.InvariantCulture)}°\nY: {v.Y.ToString($"F{p}", System.Globalization.CultureInfo.InvariantCulture)}°"
+                        : $"X: {v.X.ToString($"F{p}", System.Globalization.CultureInfo.InvariantCulture)}\nY: {v.Y.ToString($"F{p}", System.Globalization.CultureInfo.InvariantCulture)}";
+
+                    PlaceText(labelPt, coordText, 0, DimensionItemRole.VertexCoordinate, textColor, haloColor);
+                }
+            }
         }
 
         // ── Graphics Primitives ───────────────────────────────────────────────────
@@ -519,7 +664,7 @@ namespace DimensionOverlay.Rendering
             }
             catch (Exception ex)
             {
-                Trace.WriteLine($"[DIM] DimensionOverlayManager.AddLine error: {ex.Message}");
+                Trace.WriteLine($"[DIM] GeoMetricsOverlayManager.AddLine error: {ex.Message}");
             }
         }
 
@@ -573,12 +718,13 @@ namespace DimensionOverlay.Rendering
 
                 var (fontSize, bold) = role switch
                 {
-                    DimensionItemRole.Area        => (11.5, true),
-                    DimensionItemRole.Segment     => (10.0, true),
-                    DimensionItemRole.Perimeter   => (9.5,  false),
-                    DimensionItemRole.VertexAngle => (9.0,  false),
-                    DimensionItemRole.Qc          => (9.5,  true),
-                    _                             => (9.5,  false)
+                    DimensionItemRole.Area             => (11.5, true),
+                    DimensionItemRole.Segment          => (10.0, true),
+                    DimensionItemRole.Perimeter        => (9.5,  false),
+                    DimensionItemRole.VertexAngle      => (9.0,  false),
+                    DimensionItemRole.VertexCoordinate => (8.5,  true),
+                    DimensionItemRole.Qc               => (9.5,  true),
+                    _                                  => (9.5,  false)
                 };
 
                 var sym = SymbolFactory.Instance.ConstructTextSymbol(
@@ -604,7 +750,7 @@ namespace DimensionOverlay.Rendering
             }
             catch (Exception ex)
             {
-                Trace.WriteLine($"[DIM] DimensionOverlayManager.PlaceText error: {ex.Message}");
+                Trace.WriteLine($"[DIM] GeoMetricsOverlayManager.PlaceText error: {ex.Message}");
             }
         }
 

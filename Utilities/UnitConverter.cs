@@ -1,8 +1,8 @@
 using System;
 using System.Globalization;
-using DimensionOverlay.Models;
+using GeoMetrics.Models;
 
-namespace DimensionOverlay.Utilities
+namespace GeoMetrics.Utilities
 {
     /// <summary>
     /// Pure static utility for unit conversion and number formatting.

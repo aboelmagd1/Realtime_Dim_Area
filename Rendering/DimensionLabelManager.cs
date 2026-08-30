@@ -2,7 +2,7 @@ using System;
 using ArcGIS.Core.Geometry;
 using ArcGIS.Desktop.Mapping;
 
-namespace DimensionOverlay.Rendering
+namespace GeoMetrics.Rendering
 {
     /// <summary>
     /// Pure math and viewport-aware geometric calculations for dimension label and line placement.

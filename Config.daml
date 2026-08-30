@@ -1,15 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ArcGIS defaultAssembly="DimensionOverlay.dll" defaultNamespace="DimensionOverlay"
+<ArcGIS defaultAssembly="GeoMetrics.dll" defaultNamespace="GeoMetrics"
         xmlns="http://schemas.esri.com/DADF/Registry"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://schemas.esri.com/DADF/Registry http://Config.xsd">
 
   <AddInInfo id="{9B2F1B6E-3B9F-4B7F-9E7B-D1F1E3A2C001}" version="2.0.0" desktopVersion="3.0">
-    <Name>Dynamic Dimension Overlay</Name>
+    <Name>GeoMetrics</Name>
     <Description>
-      Passive real-time CAD-style dimension monitor.
-      Works on top of ArcGIS Pro's native Edit → Modify workflow.
-      Does NOT replace or interfere with native editing tools.
+      GeoMetrics is an ArcGIS Pro Add-in for real-time geometry measurements, including segment lengths, area, perimeter, and other geometry information during feature selection and editing.
     </Description>
     <Image>Images\AddinDesktop32.png</Image>
     <Author>Aboelmagd</Author>
@@ -19,21 +17,21 @@
   </AddInInfo>
 
   <modules>
-    <insertModule id="DimensionOverlay_Module" className="Module1" autoLoad="true"
-                  caption="Dynamic Dimension Overlay Module">
+    <insertModule id="GeoMetrics_Module" className="Module1" autoLoad="true"
+                  caption="GeoMetrics Module">
 
       <controls>
 
-        <!-- Primary Ribbon Toggle Button for Dynamic Dimensions ON / OFF -->
-        <button id="DimensionOverlay_ToggleDimensions"
-                caption="Dynamic Dimensions"
+        <!-- Primary Ribbon Toggle Button for GeoMetrics ON / OFF -->
+        <button id="GeoMetrics_ToggleDimensions"
+                caption="GeoMetrics"
                 className="UI.DimensionToggleButton"
                 loadOnClick="false"
                 keytip="D"
                 smallImage="Images\GenericButtonRed16.png"
                 largeImage="Images\GenericButtonRed32.png">
-          <tooltip heading="Dynamic Dimensions (ON / OFF)">
-            Toggle real-time dimension monitoring ON or OFF.
+          <tooltip heading="GeoMetrics (ON / OFF)">
+            Toggle real-time geometry measurements ON or OFF.
             When ON: segment lengths and area update live during editing and selection.
             Does NOT interfere with native Modify or Edit Vertices tools.
             <disabledText/>
@@ -41,15 +39,15 @@
         </button>
 
         <!-- Settings pane button -->
-        <button id="DimensionOverlay_ShowSettingsPane_Button"
+        <button id="GeoMetrics_ShowSettingsPane_Button"
                 caption="Settings"
                 className="UI.ShowSettingsButton"
                 loadOnClick="true"
                 keytip="S"
                 smallImage="Images\GenericButtonBlue16.png"
                 largeImage="Images\GenericButtonBlue32.png">
-          <tooltip heading="Dimension Settings">
-            Open the Dimension Overlay settings pane
+          <tooltip heading="GeoMetrics Settings">
+            Open the GeoMetrics settings pane
             (units, method, display options, precision).
             <disabledText/>
           </tooltip>
@@ -58,8 +56,8 @@
       </controls>
 
       <dockPanes>
-        <dockPane id="DimensionOverlay_UI_DimensionSettingsPane"
-                  caption="Dimension Overlay Settings"
+        <dockPane id="GeoMetrics_UI_DimensionSettingsPane"
+                  caption="GeoMetrics Settings"
                   className="UI.DimensionSettingsPaneViewModel"
                   dock="right">
           <content className="UI.DimensionSettingsPaneView"/>
@@ -67,16 +65,16 @@
       </dockPanes>
 
       <groups>
-        <group id="DimensionOverlay_Group1" caption="Dynamic Dimension Overlay"
+        <group id="GeoMetrics_Group1" caption="GeoMetrics"
                appearsOnAddInTab="false">
-          <button refID="DimensionOverlay_ToggleDimensions" size="large"/>
-          <button refID="DimensionOverlay_ShowSettingsPane_Button" size="large"/>
+          <button refID="GeoMetrics_ToggleDimensions" size="large"/>
+          <button refID="GeoMetrics_ShowSettingsPane_Button" size="large"/>
         </group>
       </groups>
 
       <tabs>
-        <tab id="DimensionOverlay_Tab1" caption="Dimension Overlay">
-          <group refID="DimensionOverlay_Group1"/>
+        <tab id="GeoMetrics_Tab1" caption="GeoMetrics">
+          <group refID="GeoMetrics_Group1"/>
         </tab>
       </tabs>
 

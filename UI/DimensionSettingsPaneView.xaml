@@ -1,48 +1,90 @@
-<UserControl x:Class="DimensionOverlay.UI.DimensionSettingsPaneView"
+<UserControl x:Class="GeoMetrics.UI.DimensionSettingsPaneView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:local="clr-namespace:DimensionOverlay.UI"
-             xmlns:models="clr-namespace:DimensionOverlay.Models"
+             xmlns:local="clr-namespace:GeoMetrics.UI"
+             xmlns:models="clr-namespace:GeoMetrics.Models"
              mc:Ignorable="d"
-             d:DesignHeight="640" d:DesignWidth="300">
+             d:DesignHeight="700" d:DesignWidth="300"
+             TextElement.Foreground="{DynamicResource Esri_TextPrimaryBrush}"
+             TextElement.FontSize="11.5"
+             FontFamily="Segoe UI">
 
     <UserControl.Resources>
         <local:EnumEqualsConverter x:Key="EnumEquals"/>
+
+        <!-- Fallback brushes ensuring bright readable text in Dark Theme -->
+        <SolidColorBrush x:Key="Esri_TextPrimaryBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="Esri_TextSecondaryBrush" Color="#B8B8B8"/>
+
         <Style TargetType="GroupBox">
             <Setter Property="Margin" Value="0,0,0,8"/>
-            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
         </Style>
+
         <Style TargetType="CheckBox">
             <Setter Property="Margin" Value="0,3"/>
+            <Setter Property="Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
         </Style>
+
+        <Style TargetType="RadioButton">
+            <Setter Property="Margin" Value="0,3"/>
+            <Setter Property="Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
+        </Style>
+
         <Style TargetType="TextBlock" x:Key="Label">
             <Setter Property="Margin" Value="0,4,6,0"/>
             <Setter Property="VerticalAlignment" Value="Center"/>
             <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
+        </Style>
+
+        <Style TargetType="TextBlock" x:Key="Hint">
+            <Setter Property="Margin" Value="0,3,0,2"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="Foreground" Value="{DynamicResource Esri_TextSecondaryBrush}"/>
+        </Style>
+
+        <Style TargetType="TextBlock" x:Key="ValueText">
+            <Setter Property="Margin" Value="0,4"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
         </Style>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Margin="10">
+        <StackPanel Margin="10" TextElement.Foreground="{DynamicResource Esri_TextPrimaryBrush}">
 
             <!-- ── Master ON / OFF Switch ─────────────────────── -->
             <GroupBox Header="Tool State (ON / OFF)">
                 <StackPanel Margin="2,4">
-                    <CheckBox Content="Enable Dynamic Dimensions (ON / OFF)"
+                    <CheckBox Content="Enable GeoMetrics (ON / OFF)"
                               FontWeight="Bold"
                               FontSize="12"
                               IsChecked="{Binding Settings.IsEnabled, Mode=TwoWay}"/>
-                    <TextBlock Style="{StaticResource Label}" TextWrapping="Wrap" Foreground="#666" Margin="0,4,0,0"
-                               Text="Check to enable real-time dimensions, uncheck to turn off overlays."/>
+                    <TextBlock Style="{StaticResource Hint}"
+                               Text="Check to enable GeoMetrics, uncheck to turn off overlays."/>
                 </StackPanel>
             </GroupBox>
 
             <!-- ── Target Layer ───────────────────────────────── -->
             <GroupBox Header="Target Layer">
                 <StackPanel>
-                    <TextBlock Style="{StaticResource Label}" TextWrapping="Wrap"
+                    <TextBlock Style="{StaticResource Hint}"
                                Text="Optional: pin the tool to a specific layer.&#x0a;Leave blank to auto-detect from selection."/>
                     <ComboBox Margin="0,4,0,0"
                               ItemsSource="{Binding Layers}"
@@ -56,8 +98,8 @@
                 <StackPanel>
                     <CheckBox Content="Apply to Service Layers"
                               IsChecked="{Binding Settings.ApplyToServiceLayers, Mode=TwoWay}"/>
-                    <TextBlock Style="{StaticResource Label}" TextWrapping="Wrap" Foreground="#666" Margin="0,2,0,0"
-                               Text="Allow Dynamic Dimension Overlay to operate on supported ArcGIS service-based layers."/>
+                    <TextBlock Style="{StaticResource Hint}"
+                               Text="Allow GeoMetrics to operate on supported ArcGIS service-based layers."/>
                 </StackPanel>
             </GroupBox>
 
@@ -72,12 +114,31 @@
                               IsChecked="{Binding Settings.ShowPerimeter, Mode=TwoWay}"/>
                     <CheckBox Content="Vertex angles (between segments)"
                               IsChecked="{Binding Settings.ShowVertexAngles, Mode=TwoWay}"/>
-                    <CheckBox Content="Bearing / azimuth per segment"
-                              IsChecked="{Binding Settings.ShowBearings, Mode=TwoWay}"/>
-                    <CheckBox Content="Area difference (QC)"
+
+                    <!-- Vertex Coordinates with Decimal Digits Selector (Default: 4) -->
+                    <DockPanel Margin="0,3" LastChildFill="True">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Decimals:"
+                                       FontSize="11"
+                                       Margin="6,0,4,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource Esri_TextSecondaryBrush}"
+                                       IsEnabled="{Binding Settings.ShowVertexCoordinates}"/>
+                            <ComboBox Width="46"
+                                      Height="22"
+                                      VerticalAlignment="Center"
+                                      ItemsSource="{Binding CoordinatePrecisionList}"
+                                      SelectedItem="{Binding Settings.CoordinatePrecision, Mode=TwoWay}"
+                                      IsEnabled="{Binding Settings.ShowVertexCoordinates}"/>
+                        </StackPanel>
+                        <CheckBox Content="Vertex coordinates (X, Y)"
+                                  VerticalAlignment="Center"
+                                  IsChecked="{Binding Settings.ShowVertexCoordinates, Mode=TwoWay}"/>
+                    </DockPanel>
+
+                    <!-- Area Difference Before & During Edit -->
+                    <CheckBox Content="Area difference (before &amp; after edit)"
                               IsChecked="{Binding Settings.ShowAreaDifference, Mode=TwoWay}"/>
-                    <CheckBox Content="Tolerance status (QC)"
-                              IsChecked="{Binding Settings.ShowToleranceStatus, Mode=TwoWay}"/>
                 </StackPanel>
             </GroupBox>
 
@@ -114,7 +175,6 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource Label}" Text="Decimal places:"/>
@@ -127,17 +187,13 @@
                             IsSnapToTickEnabled="True" Margin="0,6"
                             Value="{Binding Settings.OffsetPixels, Mode=TwoWay}"/>
 
-                    <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource Label}" Text="Area tolerance %:"/>
-                    <Slider Grid.Row="2" Grid.Column="1" Minimum="0.1" Maximum="20" Margin="0,6"
-                            Value="{Binding Settings.AreaTolerance, Mode=TwoWay}"/>
-
-                    <TextBlock Grid.Row="3" Grid.Column="0" Style="{StaticResource Label}" Text="Style:"/>
-                    <ComboBox Grid.Row="3" Grid.Column="1" Margin="0,6"
+                    <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource Label}" Text="Style:"/>
+                    <ComboBox Grid.Row="2" Grid.Column="1" Margin="0,6"
                               ItemsSource="{Binding Styles}"
                               SelectedItem="{Binding Settings.DimensionStyle, Mode=TwoWay}"/>
 
-                    <TextBlock Grid.Row="4" Grid.Column="0" Style="{StaticResource Label}" Text="Text Color:"/>
-                    <ComboBox Grid.Row="4" Grid.Column="1" Margin="0,6"
+                    <TextBlock Grid.Row="3" Grid.Column="0" Style="{StaticResource Label}" Text="Text Color:"/>
+                    <ComboBox Grid.Row="3" Grid.Column="1" Margin="0,6"
                               ItemsSource="{Binding TextColors}"
                               SelectedItem="{Binding Settings.TextColor, Mode=TwoWay}"/>
                 </Grid>
@@ -157,16 +213,16 @@
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" Grid.Column="0" Style="{StaticResource Label}" Text="CRS:"/>
-                    <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,4"
-                               Text="{Binding Settings.CrsName}" TextWrapping="Wrap" FontWeight="Bold"/>
+                    <TextBlock Grid.Row="0" Grid.Column="1" Style="{StaticResource ValueText}"
+                               Text="{Binding Settings.CrsName}" TextWrapping="Wrap"/>
 
                     <TextBlock Grid.Row="1" Grid.Column="0" Style="{StaticResource Label}" Text="WKID:"/>
-                    <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,4"
-                               Text="{Binding Settings.Wkid}" FontWeight="Bold"/>
+                    <TextBlock Grid.Row="1" Grid.Column="1" Style="{StaticResource ValueText}"
+                               Text="{Binding Settings.Wkid}"/>
 
                     <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource Label}" Text="Method:"/>
-                    <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,4"
-                               Text="{Binding Settings.ResolvedMethod}" FontWeight="Bold"/>
+                    <TextBlock Grid.Row="2" Grid.Column="1" Style="{StaticResource ValueText}"
+                               Text="{Binding Settings.ResolvedMethod}"/>
                 </Grid>
             </GroupBox>
 

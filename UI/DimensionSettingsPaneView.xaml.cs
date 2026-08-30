@@ -1,6 +1,6 @@
 using System.Windows.Controls;
 
-namespace DimensionOverlay.UI
+namespace GeoMetrics.UI
 {
     public partial class DimensionSettingsPaneView : UserControl
     {

@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using ArcGIS.Desktop.Mapping;
 
-namespace DimensionOverlay.Models
+namespace GeoMetrics.Models
 {
     public enum MeasurementMethod
     {
@@ -44,7 +44,7 @@ namespace DimensionOverlay.Models
     }
 
     /// <summary>
-    /// All user-configurable settings for the Dynamic Dimension Overlay.
+    /// All user-configurable settings for GeoMetrics.
     /// Implements INotifyPropertyChanged so the settings pane binds reactively.
     /// </summary>
     public sealed class DimensionSettings : INotifyPropertyChanged
@@ -55,7 +55,7 @@ namespace DimensionOverlay.Models
 
         // ── Master ON / OFF Toggle Switch ─────────────────────────────────────────
         private bool _isEnabled = false;
-        /// <summary>Master switch: turns real-time dimension monitoring ON or OFF (Default: OFF).</summary>
+        /// <summary>Master switch: turns real-time geometry measurements ON or OFF (Default: OFF).</summary>
         public bool IsEnabled
         {
             get => _isEnabled;
@@ -77,7 +77,7 @@ namespace DimensionOverlay.Models
         // ── Service Layer Support ─────────────────────────────────────────────────
         private bool _applyToServiceLayers = false;
         /// <summary>
-        /// Whether Dynamic Dimension Overlay is allowed to work on ArcGIS service-based layers (Default: OFF).
+        /// Whether GeoMetrics is allowed to work on ArcGIS service-based layers (Default: OFF).
         /// </summary>
         public bool ApplyToServiceLayers
         {
@@ -144,6 +144,30 @@ namespace DimensionOverlay.Models
         {
             get => _showVertexAngles;
             set { _showVertexAngles = value; Raise(nameof(ShowVertexAngles)); }
+        }
+
+        private bool _showVertexCoordinates = false;
+        /// <summary>Show X and Y coordinates at vertices (Default: OFF).</summary>
+        public bool ShowVertexCoordinates
+        {
+            get => _showVertexCoordinates;
+            set { _showVertexCoordinates = value; Raise(nameof(ShowVertexCoordinates)); }
+        }
+
+        private int _coordinatePrecision = 4;
+        /// <summary>Number of decimal places for vertex coordinates (Default: 4).</summary>
+        public int CoordinatePrecision
+        {
+            get => _coordinatePrecision;
+            set
+            {
+                int clamped = System.Math.Clamp(value, 0, 8);
+                if (_coordinatePrecision != clamped)
+                {
+                    _coordinatePrecision = clamped;
+                    Raise(nameof(CoordinatePrecision));
+                }
+            }
         }
 
         private bool _showAreaDifference;

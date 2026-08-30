@@ -1,6 +1,6 @@
 using ArcGIS.Core.Geometry;
 
-namespace DimensionOverlay.Measurement
+namespace GeoMetrics.Measurement
 {
     /// <summary>
     /// Immutable snapshot of all measured data for a single boundary segment.

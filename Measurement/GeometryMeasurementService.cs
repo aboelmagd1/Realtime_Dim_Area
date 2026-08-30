@@ -1,10 +1,10 @@
 using System;
 using System.Collections.Generic;
 using ArcGIS.Core.Geometry;
-using DimensionOverlay.Models;
-using DimensionOverlay.Utilities;
+using GeoMetrics.Models;
+using GeoMetrics.Utilities;
 
-namespace DimensionOverlay.Measurement
+namespace GeoMetrics.Measurement
 {
     /// <summary>
     /// Pure static geometry measurement service.

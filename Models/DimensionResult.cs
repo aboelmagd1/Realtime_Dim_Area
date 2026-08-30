@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using ArcGIS.Core.Geometry;
 
-namespace DimensionOverlay.Models
+namespace GeoMetrics.Models
 {
     /// <summary>One measured segment of the sketch (polygon ring or polyline part).</summary>
     public class SegmentDimension

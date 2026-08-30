@@ -1,4 +1,6 @@
-# أداة Dynamic Dimension Overlay — إضافة (Add-in) لبرنامج ArcGIS Pro
+# أداة GeoMetrics — إضافة (Add-in) لبرنامج ArcGIS Pro
+
+[**📖 اضغط هنا لقراءة دليل المستخدم الشامل خطوة بخطوة (User Guide)**](file:///d:/Learning/Realtime%20Dim%20Area/USER_GUIDE.md)
 
 دليل توثيقي شامل لبنية المشروع، ومحرك القياس والرسم اللحظي، وخيارات التخصيص، وخطوات البناء والتثبيت.
 
@@ -6,7 +8,7 @@
 
 ## 1. الفكرة العامة
 
-**Dynamic Dimension Overlay** هي إضافة احترافية لبرنامج **ArcGIS Pro (3.3.x / 3.4.x)** مبنية بلغة C# على إطار العمل **ArcGIS Pro SDK for .NET (.NET 8)**.
+**GeoMetrics** هي إضافة احترافية لبرنامج **ArcGIS Pro (3.3.x / 3.4.x)** مبنية بلغة C# على إطار العمل **ArcGIS Pro SDK for .NET (.NET 8)**.
 
 تعمل الأداة بنظام المراقبة السلبية غير التداخلية (Passive Real-Time Monitor) فوق أدوات التعديل القياسية في ArcGIS Pro مثل (**Edit → Modify → Edit Vertices**). 
 
@@ -53,10 +55,10 @@
 ## 3. بنية المشروع ومكونات الكود
 
 ```
-DimensionOverlay/
+GeoMetrics/
 ├── Config.daml                          # تعريف عناصر الواجهة (Ribbon Tab, Group, Buttons, DockPane)
 ├── Module1.cs                           # نقطة دخول الإضافة وإدارة دورة حياة الـ Engine
-├── DimensionOverlay.csproj              # ملف المشروع (.NET 8 Windows x64)
+├── GeoMetrics.csproj                    # ملف المشروع (.NET 8 Windows x64)
 │
 ├── Core/
 │   ├── DimensionEngine.cs               # المحرك الرئيسي وإدارة المعالجة وفحص طبقات الخدمات
@@ -74,7 +76,7 @@ DimensionOverlay/
 │   └── CachedGeometryMeasurements.cs    # تخزين القياسات مؤقتاً بإحداثيات الخريطة
 │
 ├── Rendering/
-│   ├── DimensionOverlayManager.cs       # حساب مواضع العرض في نافذة الخريطة وإدارة الرسومات
+│   ├── GeoMetricsOverlayManager.cs      # حساب مواضع العرض في نافذة الخريطة وإدارة الرسومات
 │   ├── DimensionLabelManager.cs         # الحسابات الرياضية، المتجهات العمودية، والتقاطعات
 │   └── DimensionRenderer.cs             # بناء رموز CIM والخطوط والنصوص وعلامات CAD
 │
@@ -104,7 +106,7 @@ DimensionOverlay/
 - `GeometryEngine.Instance.GeodesicLength` و `GeometryEngine.Instance.GeodesicArea`: قياس جيوديسي تلقائي للطبقات الجغرافية (`WGS84`).
 - حساب الزوايا بين الأضلاع المتتالية عبر حاصل الضرب القياسي (Dot Product) مع استبعاد الزوايا المستقيمة $\approx 180^\circ$.
 
-### ج) `Rendering/DimensionOverlayManager.cs` — إدارة الرسم المؤقت
+### ج) `Rendering/GeoMetricsOverlayManager.cs` — إدارة الرسم المؤقت
 - يستخدم `MapView.AddOverlay(CIMGraphic)` لعرض الرسومات في الذاكرة الرسومية المؤقتة للخريطة، وتفريغها عبر `IDisposable` لمنع تسريب الذاكرة.
 
 ---
@@ -113,14 +115,15 @@ DimensionOverlay/
 
 | الخيار | النوع | القيمة الافتراضية | الوصف |
 |---|---|---|---|
-| **Dynamic Dimensions** | تبديل | `OFF` | المفتاح الرئيسي لتشغيل/إيقاف الأداة. |
+| **GeoMetrics** | تبديل | `OFF` | المفتاح الرئيسي لتشغيل/إيقاف الأداة. |
 | **Target Layer** | قائمة | `تلقائي` | حصر الأداة في طبقة معينة أو الاكتشاف التلقائي من التحديد. |
 | **Apply to Service Layers** | اختيار | `OFF` | السماح بالعمل على طبقات الـ Feature Service و Map Service. |
 | **Segment Lengths** | اختيار | `ON` | إظهار أطوال الأضلاع. |
 | **Polygon Area** | اختيار | `ON` | إظهار مساحة المضلع (`m²`, `ft²`, إلخ). |
 | **Perimeter** | اختيار | `OFF` | إظهار المحيط الكلي للمضلع (`m`, `ft`, إلخ). |
 | **Vertex Angles** | اختيار | `OFF` | إظهار الزوايا بين الأضلاع (مع استبعاد الزوايا $\approx 180^\circ$). |
-| **Bearings** | اختيار | `OFF` | إظهار زوايا الاتجاه والانحراف للأضلاع. |
+| **Vertex Coordinates** | اختيار | `OFF` | إظهار إحداثيات النقاط والأركان (X, Y) بشكل لحظي مع تحديد الخانات العشرية. |
+| **Area Difference** | اختيار | `OFF` | إظهار ومقارنة مساحة المضلع قبل التعديل وأثناء التعديل وفارق التغير ($\Delta$). |
 | **Measurement Method** | خيارات | `Automatic` | تلقائي، مسقط (Planar)، أو جيوديسي (Geodesic). |
 | **Display Units** | قائمة | `Meters` | أمتار، أقدام، أقدام مساحية، كيلومترات، أميال، أو وحدات الطبقة. |
 | **Dimension Style** | قائمة | `Numbers_Only` | نمط الأرقام فقط، نمط CAD القياسي، نمط مبسط، أو عالي التباين. |
@@ -138,15 +141,15 @@ DimensionOverlay/
 
 ### أمر البناء:
 ```powershell
-msbuild DimensionOverlay.csproj /p:Configuration=Release
+msbuild GeoMetrics.csproj /p:Configuration=Release
 ```
 
 ملف التثبيت الناتج:
 ```
-Addin_Package\DimensionOverlay.esriAddinX
+Addin_Package\GeoMetrics.esriAddinX
 ```
 
 ### التثبيت:
-1. افتح مجلد `Addin_Package/` وانقر نقراً مزدوجاً على ملف [`DimensionOverlay.esriAddinX`](file:///d:/Learning/Realtime%20Dim%20Area/Addin_Package/DimensionOverlay.esriAddinX).
+1. افتح مجلد `Addin_Package/` وانقر نقراً مزدوجاً على ملف [`GeoMetrics.esriAddinX`](file:///d:/Learning/Realtime%20Dim%20Area/Addin_Package/GeoMetrics.esriAddinX).
 2. اضغط **Install Add-In** في نافذة التثبيت التلقائية.
-3. افتح ArcGIS Pro ستجد تبويب **Dimension Overlay** جاهزاً في الشريط العلوي.
+3. افتح ArcGIS Pro ستجد تبويب **GeoMetrics** جاهزاً في الشريط العلوي.

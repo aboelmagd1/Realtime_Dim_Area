@@ -5,11 +5,11 @@ using System.Linq;
 using ArcGIS.Core.CIM;
 using ArcGIS.Core.Geometry;
 using ArcGIS.Desktop.Mapping;
-using DimensionOverlay.Measurement;
-using DimensionOverlay.Models;
-using DimensionOverlay.Utilities;
+using GeoMetrics.Measurement;
+using GeoMetrics.Models;
+using GeoMetrics.Utilities;
 
-namespace DimensionOverlay.Rendering
+namespace GeoMetrics.Rendering
 {
     /// <summary>
     /// Owns all temporary <see cref="MapView"/> overlay handles.

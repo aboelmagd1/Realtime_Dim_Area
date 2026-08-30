@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using ArcGIS.Core.Geometry;
-using DimensionOverlay.Measurement;
+using GeoMetrics.Measurement;
 
-namespace DimensionOverlay.Models
+namespace GeoMetrics.Models
 {
     /// <summary>
     /// Holds the cached geometric measurements calculated from a sketch or selected feature.

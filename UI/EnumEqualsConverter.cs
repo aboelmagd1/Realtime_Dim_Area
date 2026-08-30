@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using System.Windows.Data;
 
-namespace DimensionOverlay.UI
+namespace GeoMetrics.UI
 {
     /// <summary>Binds a single enum value to an individual RadioButton's IsChecked.</summary>
     public class EnumEqualsConverter : IValueConverter

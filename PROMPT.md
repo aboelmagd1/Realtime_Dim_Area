@@ -1,12 +1,12 @@
-# System Specification & Master Prompt: Dynamic Dimension Overlay for ArcGIS Pro
+# System Specification & Master Prompt: GeoMetrics for ArcGIS Pro
 
-> **Purpose**: This file contains the complete, self-contained master prompt and engineering specification for building or maintaining the **Dynamic Dimension Overlay** ArcGIS Pro Add-in. It encompasses all architectural rules, SDK API contracts, geometry mathematics, threading guarantees, UI specifications, and default behaviors.
+> **Purpose**: This file contains the complete, self-contained master prompt and engineering specification for building or maintaining the **GeoMetrics** ArcGIS Pro Add-in. It encompasses all architectural rules, SDK API contracts, geometry mathematics, threading guarantees, UI specifications, and default behaviors.
 
 ---
 
 ## 1. System Overview & Core Objectives
 
-Create a professional, passive real-time CAD-style dimensioning Add-in for **ArcGIS Pro (3.3.x / 3.4.x)** built with **C#** on top of the **ArcGIS Pro SDK for .NET (.NET 8)**.
+Create a professional, passive real-time CAD-style geometry measurement Add-in for **ArcGIS Pro (3.3.x / 3.4.x)** built with **C#** on top of the **ArcGIS Pro SDK for .NET (.NET 8)**.
 
 The tool operates as a **passive real-time overlay** over ArcGIS Pro's native **Edit → Modify** workflow (e.g. *Edit Vertices*, *Reshape*, *Move*). As the user drags vertices or selects features, segment lengths, polygon areas, perimeters, and corner vertex angles are computed and rendered dynamically on the active map viewport at **60 FPS**, without altering feature class attributes, creating permanent graphic layers, or interfering with native ArcGIS Pro editing transactions.
 
@@ -52,7 +52,7 @@ The tool operates as a **passive real-time overlay** over ArcGIS Pro's native **
 - **Initialization**: When ArcGIS Pro loads, the engine must not start active dimension rendering until explicitly enabled.
 - **Single State of Truth**: The entire Add-in relies on a single central state property: `DimensionSettings.IsEnabled`.
 - **Bidirectional Sync**:
-  - Clicking the Ribbon toggle button (`DimensionToggleButton`) toggles `Settings.IsEnabled` and updates button text (`Dynamic Dimensions (ON)` / `Dynamic Dimensions (OFF)`).
+  - Clicking the Ribbon toggle button (`DimensionToggleButton`) toggles `Settings.IsEnabled` and updates button text (`GeoMetrics (ON)` / `GeoMetrics (OFF)`).
   - Toggling the CheckBox inside the Settings Dock Pane updates `Settings.IsEnabled` and immediately synchronizes the Ribbon button.
 
 ### B. Service Layer Support & Exclusion Logic
@@ -68,7 +68,7 @@ The tool operates as a **passive real-time overlay** over ArcGIS Pro's native **
      - Do NOT process live dimensions.
      - Clear existing overlays.
      - Display a non-intrusive notification:
-       > *"Service layers are excluded. Enable 'Apply to Service Layers' in Settings to use Dynamic Dimension Overlay with this layer."*
+       > *"Service layers are excluded. Enable 'Apply to Service Layers' in Settings to use GeoMetrics with this layer."*
 
 ### C. Units & Formatting Rules
 - **Default Display Unit**: **Meter (`Meters`)**.
@@ -106,10 +106,10 @@ The tool operates as a **passive real-time overlay** over ArcGIS Pro's native **
 ## 5. File Layout & Code Blueprint
 
 ```
-DimensionOverlay/
+GeoMetrics/
 ├── Config.daml                          # Module registration, Ribbon Tab, Group, Buttons, DockPane
 ├── Module1.cs                           # Add-in Module entry point, Settings singleton, lifecycle
-├── DimensionOverlay.csproj              # SDK references & custom .esriAddinX packager target
+├── GeoMetrics.csproj                    # SDK references & custom .esriAddinX packager target
 │
 ├── Core/
 │   ├── DimensionEngine.cs               # Central engine, frame coalescing, service checks, overlay updates
@@ -127,12 +127,12 @@ DimensionOverlay/
 │   └── CachedGeometryMeasurements.cs    # Map-coordinate cache for viewport transforms
 │
 ├── Rendering/
-│   ├── DimensionOverlayManager.cs       # Viewport-aware layout logic & MapView graphic handle lifecycle
+│   ├── GeoMetricsOverlayManager.cs      # Viewport-aware layout logic & MapView graphic handle lifecycle
 │   ├── DimensionLabelManager.cs         # Geometry math (normals, bisectors, angles, AABB checks)
 │   └── DimensionRenderer.cs             # Direct CIM graphic renderer (lines, text, ticks, halos)
 │
 ├── UI/
-│   ├── DimensionToggleButton.cs         # Ribbon toggle button (Dynamic Dimensions ON/OFF)
+│   ├── DimensionToggleButton.cs         # Ribbon toggle button (GeoMetrics ON/OFF)
 │   ├── ShowSettingsButton.cs            # Ribbon button to open Dimension Settings DockPane
 │   ├── DimensionSettingsPaneViewModel.cs# DockPane ViewModel (reactive layer dropdown & settings bindings)
 │   ├── DimensionSettingsPaneView.xaml   # WPF Settings Pane UI layout
@@ -156,6 +156,7 @@ ShowSegmentLength    = true;                              // Segment Lengths: ON
 ShowArea             = true;                              // Polygon Area: ON
 ShowPerimeter        = false;                             // Perimeter: OFF
 ShowVertexAngles     = false;                             // Vertex Angles: OFF
+ShowVertexCoordinates= false;                             // Vertex Coordinates: OFF
 ShowBearings         = false;                             // Bearings: OFF
 ShowAreaDifference   = false;                             // QC Area Difference: OFF
 ShowToleranceStatus  = false;                             // QC Tolerance: OFF
@@ -189,10 +190,10 @@ Diagnostic messages must be logged to `System.Diagnostics.Trace` using exact for
 
 1. **Compile with MSBuild**:
    ```powershell
-   msbuild DimensionOverlay.csproj /p:Configuration=Release /v:m
+   msbuild GeoMetrics.csproj /p:Configuration=Release /v:m
    ```
 2. **Esri-Compliant Package Structure**:
-   - `DimensionOverlay.esriAddinX` is a standard ZIP package structured as:
+   - `GeoMetrics.esriAddinX` is a standard ZIP package structured as:
      - `Config.daml` (at archive root).
-     - `Install/DimensionOverlay.dll` + dependencies + images.
+     - `Install/GeoMetrics.dll` + dependencies + images.
 3. **Deployment**: Double-click `.esriAddinX` on any machine with ArcGIS Pro 3.3.x+ installed.

@@ -9,10 +9,10 @@ using ArcGIS.Desktop.Framework.Contracts;
 using ArcGIS.Desktop.Framework.Threading.Tasks;
 using ArcGIS.Desktop.Mapping;
 using ArcGIS.Desktop.Mapping.Events;
-using DimensionOverlay.Models;
-using DimensionOverlay.Utilities;
+using GeoMetrics.Models;
+using GeoMetrics.Utilities;
 
-namespace DimensionOverlay.UI
+namespace GeoMetrics.UI
 {
     /// <summary>
     /// ViewModel for the Settings Dock Pane.
@@ -22,7 +22,7 @@ namespace DimensionOverlay.UI
     /// </summary>
     internal class DimensionSettingsPaneViewModel : DockPane
     {
-        private const string PaneId = "DimensionOverlay_UI_DimensionSettingsPane";
+        private const string PaneId = "GeoMetrics_UI_DimensionSettingsPane";
 
         protected DimensionSettingsPaneViewModel()
         {
@@ -87,6 +87,8 @@ namespace DimensionOverlay.UI
             TextColorOption.Yellow,
             TextColorOption.Cyan
         };
+
+        public int[] CoordinatePrecisionList { get; } = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
 
         // ── Helpers ───────────────────────────────────────────────────────────────
 
