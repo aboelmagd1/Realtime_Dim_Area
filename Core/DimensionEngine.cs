@@ -315,6 +315,46 @@ namespace GeoMetrics.Core
             }
         }
 
+        // ── Refresh Overlay Layout on Settings Change ────────────────────────────
+
+        public void RefreshOverlayLayout()
+        {
+            try
+            {
+                if (!_isEnabled || _disposed) return;
+                var mapView = MapView.Active;
+                if (mapView == null) return;
+
+                QueuedTask.Run(() =>
+                {
+                    try
+                    {
+                        if (!_isEnabled || _disposed) return;
+                        EnsureOverlayManager(mapView);
+                        var settings = Module1.Current?.Settings;
+                        if (settings == null) return;
+
+                        if (_overlayManager != null && _overlayManager.HasCachedData)
+                        {
+                            _overlayManager.UpdateForViewpoint(settings);
+                        }
+                        else
+                        {
+                            RefreshSelectionDisplayInternal(mapView);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Trace.WriteLine($"[DIM] RefreshOverlayLayout inner error: {ex.Message}");
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"[DIM] RefreshOverlayLayout error: {ex.Message}");
+            }
+        }
+
         // ── Situation A (Initial Display on Selection / Idle Observation) ─────────
 
         public void RefreshSelectionDisplay()

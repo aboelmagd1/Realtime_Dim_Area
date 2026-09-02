@@ -9,7 +9,8 @@ namespace GeoMetrics.Models
         Perimeter = 3,
         Qc = 4,
         VertexAngle = 5,
-        VertexCoordinate = 6
+        VertexCoordinate = 6,
+        ViewportHud = 7
     }
 
     /// <summary>

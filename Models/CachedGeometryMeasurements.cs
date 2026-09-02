@@ -24,6 +24,7 @@ namespace GeoMetrics.Models
         public PolylineMeasurementResult PolylineResult { get; set; }
 
         public List<DimensionItem> Items { get; } = new();
+        public List<MapPoint> Vertices { get; } = new();
 
         public Envelope Extent { get; set; }
 
@@ -34,6 +35,7 @@ namespace GeoMetrics.Models
             PolygonResult = null;
             PolylineResult = null;
             Items.Clear();
+            Vertices.Clear();
             Extent = null;
         }
 

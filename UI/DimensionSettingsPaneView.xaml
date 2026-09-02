@@ -14,32 +14,161 @@
     <UserControl.Resources>
         <local:EnumEqualsConverter x:Key="EnumEquals"/>
 
-        <!-- Fallback brushes ensuring bright readable text in Dark Theme -->
-        <SolidColorBrush x:Key="Esri_TextPrimaryBrush" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="Esri_TextSecondaryBrush" Color="#B8B8B8"/>
+        <!-- High-contrast text brushes: Black in Light Mode, dynamically flipped to White in Dark Mode -->
+        <SolidColorBrush x:Key="Esri_TextPrimaryBrush" Color="#000000"/>
+        <SolidColorBrush x:Key="Esri_TextSecondaryBrush" Color="#555555"/>
 
-        <Style TargetType="GroupBox">
-            <Setter Property="Margin" Value="0,0,0,8"/>
-            <Setter Property="Padding" Value="8,6"/>
-            <Setter Property="Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
-            <Setter Property="TextElement.Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
+        <!-- Dedicated Dropdown Theme Brushes (Black in Light Mode, White in Dark Mode) -->
+        <SolidColorBrush x:Key="DropdownTextBrush" Color="#000000"/>
+        <SolidColorBrush x:Key="DropdownBackgroundBrush" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="DropdownHighlightBrush" Color="#E5F1FB"/>
+        <SolidColorBrush x:Key="DropdownBorderBrush" Color="#B8B8B8"/>
+
+        <!-- ComboBox Toggle Button Template -->
+        <ControlTemplate x:Key="ComboBoxToggleButtonTemplate" TargetType="ToggleButton">
+            <Border x:Name="TemplateRoot"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    CornerRadius="2"
+                    SnapsToDevicePixels="True">
+                <Border x:Name="SplitBorder"
+                        Width="20"
+                        HorizontalAlignment="Right"
+                        SnapsToDevicePixels="True">
+                    <Path x:Name="Arrow"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                          Data="M 0 0 L 4 4 L 8 0 Z"
+                          Fill="{DynamicResource DropdownTextBrush}"/>
+                </Border>
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="TemplateRoot" Property="BorderBrush" Value="#888888"/>
+                    <Setter TargetName="TemplateRoot" Property="Background" Value="{DynamicResource DropdownHighlightBrush}"/>
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+
+        <!-- Global ComboBox Style: dark background, white text, styled popup -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Foreground" Value="{DynamicResource DropdownTextBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource DropdownBackgroundBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource DropdownBorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="Padding" Value="6,3"/>
+            <Setter Property="MinHeight" Value="24"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid x:Name="MainGrid" SnapsToDevicePixels="True">
+                            <ToggleButton x:Name="ToggleButton"
+                                          Template="{StaticResource ComboBoxToggleButtonTemplate}"
+                                          Background="{TemplateBinding Background}"
+                                          BorderBrush="{TemplateBinding BorderBrush}"
+                                          BorderThickness="{TemplateBinding BorderThickness}"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                          ClickMode="Press"
+                                          Focusable="False"/>
+                            <ContentPresenter x:Name="ContentSite"
+                                              IsHitTestVisible="False"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                              Margin="{TemplateBinding Padding}"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Left">
+                                <ContentPresenter.Resources>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{DynamicResource DropdownTextBrush}"/>
+                                    </Style>
+                                </ContentPresenter.Resources>
+                            </ContentPresenter>
+                            <Popup x:Name="PART_Popup"
+                                   AllowsTransparency="True"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   Placement="Bottom"
+                                   PopupAnimation="Slide"
+                                   Focusable="False">
+                                <Border x:Name="DropDownBorder"
+                                        MinWidth="{Binding ActualWidth, ElementName=MainGrid}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                        Background="{DynamicResource DropdownBackgroundBrush}"
+                                        BorderBrush="{DynamicResource DropdownBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="2"
+                                        SnapsToDevicePixels="True"
+                                        Margin="0,1,0,0">
+                                    <ScrollViewer x:Name="DropDownScrollViewer" SnapsToDevicePixels="True">
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="HasItems" Value="False">
+                                <Setter TargetName="DropDownBorder" Property="MinHeight" Value="20"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.56"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ComboBoxItem">
+                        <Setter Property="Foreground" Value="{DynamicResource DropdownTextBrush}"/>
+                        <Setter Property="Background" Value="{DynamicResource DropdownBackgroundBrush}"/>
+                        <Setter Property="Padding" Value="6,4"/>
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="SnapsToDevicePixels" Value="True"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ComboBoxItem">
+                                    <Border x:Name="ItemBorder"
+                                            Background="{TemplateBinding Background}"
+                                            Padding="{TemplateBinding Padding}"
+                                            SnapsToDevicePixels="True">
+                                        <ContentPresenter Content="{TemplateBinding Content}"
+                                                          ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                          VerticalAlignment="Center">
+                                            <ContentPresenter.Resources>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Foreground" Value="{DynamicResource DropdownTextBrush}"/>
+                                                </Style>
+                                            </ContentPresenter.Resources>
+                                        </ContentPresenter>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsHighlighted" Value="True">
+                                            <Setter TargetName="ItemBorder" Property="Background" Value="{DynamicResource DropdownHighlightBrush}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="ItemBorder" Property="Background" Value="#007ACC"/>
+                                            <Setter Property="Foreground" Value="#FFFFFF"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
         </Style>
 
-        <Style TargetType="CheckBox">
-            <Setter Property="Margin" Value="0,3"/>
-            <Setter Property="Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
-            <Setter Property="TextElement.Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="{DynamicResource DropdownTextBrush}"/>
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource DropdownTextBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource DropdownBackgroundBrush}"/>
+            <Setter Property="Padding" Value="6,4"/>
         </Style>
 
-        <Style TargetType="RadioButton">
-            <Setter Property="Margin" Value="0,3"/>
-            <Setter Property="Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
-            <Setter Property="TextElement.Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-        </Style>
-
-        <Style TargetType="TextBlock">
+        <Style TargetType="Slider">
             <Setter Property="Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
         </Style>
 
@@ -88,8 +217,13 @@
                                Text="Optional: pin the tool to a specific layer.&#x0a;Leave blank to auto-detect from selection."/>
                     <ComboBox Margin="0,4,0,0"
                               ItemsSource="{Binding Layers}"
-                              SelectedItem="{Binding Settings.TargetLayer, Mode=TwoWay}"
-                              DisplayMemberPath="Name"/>
+                              SelectedItem="{Binding Settings.TargetLayer, Mode=TwoWay}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}" Foreground="{DynamicResource DropdownTextBrush}" VerticalAlignment="Center"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                 </StackPanel>
             </GroupBox>
 
@@ -129,7 +263,13 @@
                                       VerticalAlignment="Center"
                                       ItemsSource="{Binding CoordinatePrecisionList}"
                                       SelectedItem="{Binding Settings.CoordinatePrecision, Mode=TwoWay}"
-                                      IsEnabled="{Binding Settings.ShowVertexCoordinates}"/>
+                                      IsEnabled="{Binding Settings.ShowVertexCoordinates}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" Foreground="{DynamicResource DropdownTextBrush}" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
                         </StackPanel>
                         <CheckBox Content="Vertex coordinates (X, Y)"
                                   VerticalAlignment="Center"
@@ -139,6 +279,13 @@
                     <!-- Area Difference Before & During Edit -->
                     <CheckBox Content="Area difference (before &amp; after edit)"
                               IsChecked="{Binding Settings.ShowAreaDifference, Mode=TwoWay}"/>
+
+                    <!-- Viewport HUD (Visible Vertices & Segments Count) -->
+                    <CheckBox Content="Visible vertices &amp; segments count (HUD)"
+                              IsChecked="{Binding Settings.ShowViewportHud, Mode=TwoWay}"/>
+                    <TextBlock Style="{StaticResource Hint}"
+                               Margin="18,0,0,4"
+                               Text="Displays live count of visible vertices and segments at viewport top-left (Default: OFF)."/>
                 </StackPanel>
             </GroupBox>
 
@@ -160,7 +307,13 @@
             <!-- ── Display Units ─────────────────────────────── -->
             <GroupBox Header="Display Units">
                 <ComboBox ItemsSource="{Binding Units}"
-                          SelectedItem="{Binding Settings.DisplayUnit, Mode=TwoWay}"/>
+                          SelectedItem="{Binding Settings.DisplayUnit, Mode=TwoWay}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" Foreground="{DynamicResource DropdownTextBrush}" VerticalAlignment="Center"/>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
             </GroupBox>
 
             <!-- ── Precision & Appearance ────────────────────── -->
@@ -190,12 +343,24 @@
                     <TextBlock Grid.Row="2" Grid.Column="0" Style="{StaticResource Label}" Text="Style:"/>
                     <ComboBox Grid.Row="2" Grid.Column="1" Margin="0,6"
                               ItemsSource="{Binding Styles}"
-                              SelectedItem="{Binding Settings.DimensionStyle, Mode=TwoWay}"/>
+                              SelectedItem="{Binding Settings.DimensionStyle, Mode=TwoWay}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" Foreground="{DynamicResource DropdownTextBrush}" VerticalAlignment="Center"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
 
                     <TextBlock Grid.Row="3" Grid.Column="0" Style="{StaticResource Label}" Text="Text Color:"/>
                     <ComboBox Grid.Row="3" Grid.Column="1" Margin="0,6"
                               ItemsSource="{Binding TextColors}"
-                              SelectedItem="{Binding Settings.TextColor, Mode=TwoWay}"/>
+                              SelectedItem="{Binding Settings.TextColor, Mode=TwoWay}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" Foreground="{DynamicResource DropdownTextBrush}" VerticalAlignment="Center"/>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                 </Grid>
             </GroupBox>
 

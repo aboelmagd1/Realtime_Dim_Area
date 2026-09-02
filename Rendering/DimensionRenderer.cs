@@ -69,6 +69,12 @@ namespace GeoMetrics.Rendering
                 drawnGraphics++;
             }
 
+            // Viewport HUD (Visible Vertices & Segments Count at Top-Left)
+            if (settings.ShowViewportHud)
+            {
+                DrawPolygonHud(result, settings, textColor, haloColor);
+            }
+
             if (farZoom)
             {
                 Trace.WriteLine($"[DIM] Far zoom ({mapScale:F0}): Only area label rendered.");
@@ -139,10 +145,16 @@ namespace GeoMetrics.Rendering
             Clear();
             if (result == null || _mapView == null) return;
 
+            var (textColor, haloColor) = ResolveTextAndHaloColor(settings);
+
+            // Viewport HUD (Visible Vertices & Segments Count at Top-Left)
+            if (settings.ShowViewportHud)
+            {
+                DrawPolylineHud(result, settings, textColor, haloColor);
+            }
+
             double mpp = DimensionLabelManager.GetMetersPerPixel(mapScale);
             if (mapScale > FarScale) return;
-
-            var (textColor, haloColor) = ResolveTextAndHaloColor(settings);
 
             if (settings.ShowSegmentLength && result.Segments != null)
             {
@@ -446,23 +458,232 @@ namespace GeoMetrics.Rendering
             }
         }
 
+        // ── Viewport HUD Helpers ──────────────────────────────────────────────────
+
+        private void DrawPolygonHud(
+            PolygonMeasurementResult result,
+            DimensionSettings settings,
+            CIMColor textColor,
+            CIMColor haloColor)
+        {
+            if (result == null || _mapView == null) return;
+
+            var verts = new List<MapPoint>();
+            if (result.SourcePolygon != null && result.SourcePolygon.Parts != null)
+            {
+                var polySr = result.SourcePolygon.SpatialReference ?? _mapView.Map?.SpatialReference;
+                foreach (var part in result.SourcePolygon.Parts)
+                {
+                    var pts = new List<MapPoint>();
+                    foreach (var seg in part)
+                    {
+                        var sp = seg.StartPoint;
+                        if (sp.SpatialReference == null && polySr != null)
+                            sp = MapPointBuilderEx.CreateMapPoint(sp.X, sp.Y, polySr);
+                        pts.Add(sp);
+                    }
+                    int k = pts.Count;
+                    if (k > 0 && Math.Abs(pts[0].X - pts[k - 1].X) < 1e-7 && Math.Abs(pts[0].Y - pts[k - 1].Y) < 1e-7)
+                        k--;
+                    for (int i = 0; i < k; i++) verts.Add(pts[i]);
+                }
+            }
+            if (verts.Count == 0 && result.Segments != null)
+            {
+                foreach (var s in result.Segments)
+                {
+                    if (s.Start != null) verts.Add(s.Start);
+                }
+            }
+
+            int totalVerts = verts.Count;
+            int visVerts = 0;
+            foreach (var v in verts)
+            {
+                if (DimensionLabelManager.IsPointInViewportStrict(_mapView, v))
+                    visVerts++;
+            }
+
+            int totalSegs = result.Segments?.Count ?? 0;
+            int visSegs = 0;
+            if (result.Segments != null)
+            {
+                foreach (var s in result.Segments)
+                {
+                    if (s.Start != null && s.End != null &&
+                        DimensionLabelManager.IsSegmentInViewportStrict(_mapView, s.Start, s.End))
+                    {
+                        visSegs++;
+                    }
+                }
+            }
+
+            RenderHudAtTopLeft(visVerts, totalVerts, visSegs, totalSegs, textColor, haloColor);
+        }
+
+        private void DrawPolylineHud(
+            PolylineMeasurementResult result,
+            DimensionSettings settings,
+            CIMColor textColor,
+            CIMColor haloColor)
+        {
+            if (result == null || _mapView == null) return;
+
+            var verts = new List<MapPoint>();
+            if (result.SourcePolyline != null && result.SourcePolyline.Parts != null)
+            {
+                var lineSr = result.SourcePolyline.SpatialReference ?? _mapView.Map?.SpatialReference;
+                foreach (var part in result.SourcePolyline.Parts)
+                {
+                    var pts = new List<MapPoint>();
+                    foreach (var seg in part)
+                    {
+                        var sp = seg.StartPoint;
+                        if (sp.SpatialReference == null && lineSr != null)
+                            sp = MapPointBuilderEx.CreateMapPoint(sp.X, sp.Y, lineSr);
+                        pts.Add(sp);
+                    }
+                    if (part.Count > 0)
+                    {
+                        var ep = part[part.Count - 1].EndPoint;
+                        if (ep.SpatialReference == null && lineSr != null)
+                            ep = MapPointBuilderEx.CreateMapPoint(ep.X, ep.Y, lineSr);
+                        pts.Add(ep);
+                    }
+                    verts.AddRange(pts);
+                }
+            }
+            if (verts.Count == 0 && result.Segments != null)
+            {
+                foreach (var s in result.Segments)
+                {
+                    if (s.Start != null) verts.Add(s.Start);
+                }
+                if (result.Segments.Count > 0 && result.Segments[^1].End != null)
+                {
+                    verts.Add(result.Segments[^1].End);
+                }
+            }
+
+            int totalVerts = verts.Count;
+            int visVerts = 0;
+            foreach (var v in verts)
+            {
+                if (DimensionLabelManager.IsPointInViewportStrict(_mapView, v))
+                    visVerts++;
+            }
+
+            int totalSegs = result.Segments?.Count ?? 0;
+            int visSegs = 0;
+            if (result.Segments != null)
+            {
+                foreach (var s in result.Segments)
+                {
+                    if (s.Start != null && s.End != null &&
+                        DimensionLabelManager.IsSegmentInViewportStrict(_mapView, s.Start, s.End))
+                    {
+                        visSegs++;
+                    }
+                }
+            }
+
+            RenderHudAtTopLeft(visVerts, totalVerts, visSegs, totalSegs, textColor, haloColor);
+        }
+
+        private void RenderHudAtTopLeft(
+            int visVerts, int totalVerts, int visSegs, int totalSegs,
+            CIMColor textColor, CIMColor haloColor)
+        {
+            MapPoint hudAnchor = null;
+            try
+            {
+                hudAnchor = _mapView.ClientToMap(new System.Windows.Point(24, 24));
+            }
+            catch { }
+
+            if (hudAnchor == null)
+            {
+                var extent = _mapView.Extent;
+                if (extent != null && !extent.IsEmpty)
+                {
+                    var mapSr = extent.SpatialReference ?? _mapView.Map?.SpatialReference;
+                    hudAnchor = MapPointBuilderEx.CreateMapPoint(
+                        extent.XMin + (extent.Width * 0.02),
+                        extent.YMax - (extent.Height * 0.02),
+                        mapSr);
+                }
+            }
+
+            if (hudAnchor == null) return;
+
+            string vertText = $"Vertices: {visVerts} (Total: {totalVerts})";
+            string segText = $"Segments: {visSegs} (Total: {totalSegs})";
+            string hudContent = $"{vertText}\n{segText}";
+
+            PlaceHudText(hudAnchor, hudContent, textColor, haloColor);
+        }
+
+        private void PlaceHudText(MapPoint at, string text, CIMColor textColor, CIMColor haloColor)
+        {
+            if (at == null || string.IsNullOrWhiteSpace(text) || _mapView == null) return;
+
+            try
+            {
+                var mapSr = _mapView.Map?.SpatialReference;
+                var ptSr = at.SpatialReference ?? mapSr;
+                var ptToDraw = (mapSr != null && ptSr != null && !ptSr.IsEqual(mapSr))
+                    ? (GeometryEngine.Instance.Project(at, mapSr) as MapPoint ?? at)
+                    : at;
+
+                if (ptToDraw.SpatialReference == null && mapSr != null)
+                {
+                    ptToDraw = MapPointBuilderEx.CreateMapPoint(ptToDraw.X, ptToDraw.Y, mapSr);
+                }
+
+                var sym = SymbolFactory.Instance.ConstructTextSymbol(
+                    textColor, 10.5, "Segoe UI", "Bold");
+                sym.Angle               = 0;
+                sym.HorizontalAlignment = ArcGIS.Core.CIM.HorizontalAlignment.Left;
+                sym.VerticalAlignment   = ArcGIS.Core.CIM.VerticalAlignment.Top;
+                sym.HaloSize            = 2.6;
+                sym.HaloSymbol          = SymbolFactory.Instance.ConstructPolygonSymbol(haloColor);
+
+                var textGraphic = new CIMTextGraphic
+                {
+                    Text   = text,
+                    Symbol = sym.MakeSymbolReference(),
+                    Shape  = ptToDraw
+                };
+
+                var handle = _mapView.AddOverlay(textGraphic);
+                if (handle != null)
+                {
+                    lock (_handles) _handles.Add(handle);
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"[DIM] PlaceHudText error: {ex.Message}");
+            }
+        }
+
         // ── Style & Color Resolvers ────────────────────────────────────────────────
 
         private static (CIMColor text, CIMColor halo) ResolveTextAndHaloColor(DimensionSettings s)
         {
             var text = s.TextColor switch
             {
-                TextColorOption.Blue   => (CIMColor)ColorFactory.Instance.CreateRGBColor(0, 70, 200),
-                TextColorOption.Red    => (CIMColor)ColorFactory.Instance.CreateRGBColor(210, 20, 20),
-                TextColorOption.Green  => (CIMColor)ColorFactory.Instance.CreateRGBColor(0, 130, 40),
-                TextColorOption.Orange => (CIMColor)ColorFactory.Instance.CreateRGBColor(240, 90, 0),
+                TextColorOption.Blue   => (CIMColor)ColorFactory.Instance.CreateRGBColor(0, 90, 235),
+                TextColorOption.Red    => (CIMColor)ColorFactory.Instance.CreateRGBColor(225, 20, 20),
+                TextColorOption.Green  => (CIMColor)ColorFactory.Instance.CreateRGBColor(0, 160, 45),
+                TextColorOption.Orange => (CIMColor)ColorFactory.Instance.CreateRGBColor(245, 110, 0),
                 TextColorOption.White  => (CIMColor)ColorFactory.Instance.WhiteRGB,
                 TextColorOption.Yellow => (CIMColor)ColorFactory.Instance.CreateRGBColor(255, 220, 0),
-                TextColorOption.Cyan   => (CIMColor)ColorFactory.Instance.CreateRGBColor(0, 210, 230),
+                TextColorOption.Cyan   => (CIMColor)ColorFactory.Instance.CreateRGBColor(0, 215, 235),
                 _                      => (CIMColor)ColorFactory.Instance.BlackRGB
             };
 
-            // If text is white or yellow, use black halo for high contrast; otherwise white halo
+            // White halo for Black, Blue, Red, Green, Orange; Black halo for White, Yellow, Cyan
             var halo = (s.TextColor == TextColorOption.White || s.TextColor == TextColorOption.Yellow || s.TextColor == TextColorOption.Cyan)
                 ? (CIMColor)ColorFactory.Instance.BlackRGB
                 : (CIMColor)ColorFactory.Instance.WhiteRGB;

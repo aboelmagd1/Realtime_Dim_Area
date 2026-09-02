@@ -399,6 +399,158 @@ namespace GeoMetrics.Rendering
         /// </summary>
         public static double MapUnitsPerPixel(double mapScale)
             => GetMetersPerPixel(mapScale);
+
+        /// <summary>
+        /// Checks whether a map point is strictly within the visible viewport extent (no buffer).
+        /// Correctly projects the point to the map's coordinate system if needed.
+        /// </summary>
+        public static bool IsPointInViewportStrict(MapView mapView, MapPoint point)
+        {
+            if (mapView == null || point == null) return false;
+
+            try
+            {
+                var extent = mapView.Extent;
+                if (extent == null || extent.IsEmpty) return false;
+
+                var mapSr = extent.SpatialReference ?? mapView.Map?.SpatialReference;
+                var pt = (mapSr != null && point.SpatialReference != null && !point.SpatialReference.IsEqual(mapSr))
+                    ? (GeometryEngine.Instance.Project(point, mapSr) as MapPoint ?? point)
+                    : point;
+
+                return pt.X >= extent.XMin && pt.X <= extent.XMax &&
+                       pt.Y >= extent.YMin && pt.Y <= extent.YMax;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Checks whether any portion of a segment a→b is strictly visible within the viewport extent.
+        /// Uses ultra-fast Cohen-Sutherland line clipping with zero allocations.
+        /// </summary>
+        public static bool IsSegmentInViewportStrict(MapView mapView, MapPoint a, MapPoint b)
+        {
+            if (mapView == null || a == null || b == null) return false;
+
+            try
+            {
+                var extent = mapView.Extent;
+                if (extent == null || extent.IsEmpty) return false;
+
+                var mapSr = extent.SpatialReference ?? mapView.Map?.SpatialReference;
+                var ptA = (mapSr != null && a.SpatialReference != null && !a.SpatialReference.IsEqual(mapSr))
+                    ? (GeometryEngine.Instance.Project(a, mapSr) as MapPoint ?? a)
+                    : a;
+                var ptB = (mapSr != null && b.SpatialReference != null && !b.SpatialReference.IsEqual(mapSr))
+                    ? (GeometryEngine.Instance.Project(b, mapSr) as MapPoint ?? b)
+                    : b;
+
+                // Bounding box quick rejection
+                double xMin = Math.Min(ptA.X, ptB.X);
+                double xMax = Math.Max(ptA.X, ptB.X);
+                double yMin = Math.Min(ptA.Y, ptB.Y);
+                double yMax = Math.Max(ptA.Y, ptB.Y);
+
+                if (xMax < extent.XMin || xMin > extent.XMax || yMax < extent.YMin || yMin > extent.YMax)
+                    return false;
+
+                // If either endpoint is strictly inside the viewport, the segment is visible
+                if ((ptA.X >= extent.XMin && ptA.X <= extent.XMax && ptA.Y >= extent.YMin && ptA.Y <= extent.YMax) ||
+                    (ptB.X >= extent.XMin && ptB.X <= extent.XMax && ptB.Y >= extent.YMin && ptB.Y <= extent.YMax))
+                {
+                    return true;
+                }
+
+                // Both endpoints outside: run Cohen-Sutherland line clipping against the viewport extent
+                return LineIntersectsBox(ptA.X, ptA.Y, ptB.X, ptB.Y, extent.XMin, extent.XMax, extent.YMin, extent.YMax);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Ultra-fast Cohen-Sutherland 2D line clipping algorithm to test if a segment (x0, y0)-(x1, y1)
+        /// intersects an axis-aligned bounding box [xmin, xmax, ymin, ymax].
+        /// Zero allocations, pure math, runs in nanoseconds.
+        /// </summary>
+        public static bool LineIntersectsBox(double x0, double y0, double x1, double y1, double xmin, double xmax, double ymin, double ymax)
+        {
+            const int INSIDE = 0; // 0000
+            const int LEFT   = 1; // 0001
+            const int RIGHT  = 2; // 0010
+            const int BOTTOM = 4; // 0100
+            const int TOP    = 8; // 1000
+
+            int ComputeOutCode(double x, double y)
+            {
+                int code = INSIDE;
+                if (x < xmin)      code |= LEFT;
+                else if (x > xmax) code |= RIGHT;
+                if (y < ymin)      code |= BOTTOM;
+                else if (y > ymax) code |= TOP;
+                return code;
+            }
+
+            int code0 = ComputeOutCode(x0, y0);
+            int code1 = ComputeOutCode(x1, y1);
+
+            while (true)
+            {
+                if ((code0 | code1) == 0)
+                {
+                    // Both endpoints inside rectangle
+                    return true;
+                }
+                if ((code0 & code1) != 0)
+                {
+                    // Both endpoints share an outside zone -> trivially reject
+                    return false;
+                }
+
+                // Failed both tests, so calculate the line segment to clip from outside point to rectangle edge
+                int outcodeOut = code0 != 0 ? code0 : code1;
+                double x = 0, y = 0;
+
+                if ((outcodeOut & TOP) != 0)
+                {
+                    x = x0 + (x1 - x0) * (ymax - y0) / (y1 - y0);
+                    y = ymax;
+                }
+                else if ((outcodeOut & BOTTOM) != 0)
+                {
+                    x = x0 + (x1 - x0) * (ymin - y0) / (y1 - y0);
+                    y = ymin;
+                }
+                else if ((outcodeOut & RIGHT) != 0)
+                {
+                    y = y0 + (y1 - y0) * (xmax - x0) / (x1 - x0);
+                    x = xmax;
+                }
+                else if ((outcodeOut & LEFT) != 0)
+                {
+                    y = y0 + (y1 - y0) * (xmin - x0) / (x1 - x0);
+                    x = xmin;
+                }
+
+                if (outcodeOut == code0)
+                {
+                    x0 = x;
+                    y0 = y;
+                    code0 = ComputeOutCode(x0, y0);
+                }
+                else
+                {
+                    x1 = x;
+                    y1 = y;
+                    code1 = ComputeOutCode(x1, y1);
+                }
+            }
+        }
     }
 }
 

@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 using ArcGIS.Desktop.Mapping;
 
@@ -114,28 +115,60 @@ namespace GeoMetrics.Models
         public bool ShowSegmentLength
         {
             get => _showSegmentLength;
-            set { _showSegmentLength = value; Raise(nameof(ShowSegmentLength)); }
+            set
+            {
+                if (_showSegmentLength != value)
+                {
+                    _showSegmentLength = value;
+                    Raise(nameof(ShowSegmentLength));
+                    Module1.Current?.Engine?.RefreshOverlayLayout();
+                }
+            }
         }
 
         private bool _showArea = true;
         public bool ShowArea
         {
             get => _showArea;
-            set { _showArea = value; Raise(nameof(ShowArea)); }
+            set
+            {
+                if (_showArea != value)
+                {
+                    _showArea = value;
+                    Raise(nameof(ShowArea));
+                    Module1.Current?.Engine?.RefreshOverlayLayout();
+                }
+            }
         }
 
         private bool _showPerimeter = false;
         public bool ShowPerimeter
         {
             get => _showPerimeter;
-            set { _showPerimeter = value; Raise(nameof(ShowPerimeter)); }
+            set
+            {
+                if (_showPerimeter != value)
+                {
+                    _showPerimeter = value;
+                    Raise(nameof(ShowPerimeter));
+                    Module1.Current?.Engine?.RefreshOverlayLayout();
+                }
+            }
         }
 
         private bool _showBearings;
         public bool ShowBearings
         {
             get => _showBearings;
-            set { _showBearings = value; Raise(nameof(ShowBearings)); }
+            set
+            {
+                if (_showBearings != value)
+                {
+                    _showBearings = value;
+                    Raise(nameof(ShowBearings));
+                    Module1.Current?.Engine?.RefreshOverlayLayout();
+                }
+            }
         }
 
         private bool _showVertexAngles = false;
@@ -143,7 +176,15 @@ namespace GeoMetrics.Models
         public bool ShowVertexAngles
         {
             get => _showVertexAngles;
-            set { _showVertexAngles = value; Raise(nameof(ShowVertexAngles)); }
+            set
+            {
+                if (_showVertexAngles != value)
+                {
+                    _showVertexAngles = value;
+                    Raise(nameof(ShowVertexAngles));
+                    Module1.Current?.Engine?.RefreshOverlayLayout();
+                }
+            }
         }
 
         private bool _showVertexCoordinates = false;
@@ -151,7 +192,15 @@ namespace GeoMetrics.Models
         public bool ShowVertexCoordinates
         {
             get => _showVertexCoordinates;
-            set { _showVertexCoordinates = value; Raise(nameof(ShowVertexCoordinates)); }
+            set
+            {
+                if (_showVertexCoordinates != value)
+                {
+                    _showVertexCoordinates = value;
+                    Raise(nameof(ShowVertexCoordinates));
+                    Module1.Current?.Engine?.RefreshOverlayLayout();
+                }
+            }
         }
 
         private int _coordinatePrecision = 4;
@@ -166,6 +215,7 @@ namespace GeoMetrics.Models
                 {
                     _coordinatePrecision = clamped;
                     Raise(nameof(CoordinatePrecision));
+                    Module1.Current?.Engine?.RefreshOverlayLayout();
                 }
             }
         }
@@ -174,7 +224,15 @@ namespace GeoMetrics.Models
         public bool ShowAreaDifference
         {
             get => _showAreaDifference;
-            set { _showAreaDifference = value; Raise(nameof(ShowAreaDifference)); }
+            set
+            {
+                if (_showAreaDifference != value)
+                {
+                    _showAreaDifference = value;
+                    Raise(nameof(ShowAreaDifference));
+                    Module1.Current?.Engine?.RefreshOverlayLayout();
+                }
+            }
         }
 
         private bool _showToleranceStatus;
@@ -182,6 +240,23 @@ namespace GeoMetrics.Models
         {
             get => _showToleranceStatus;
             set { _showToleranceStatus = value; Raise(nameof(ShowToleranceStatus)); }
+        }
+
+        private bool _showViewportHud = false;
+        /// <summary>Show visible vertices and segments count HUD in the viewport top-left (Default: OFF).</summary>
+        public bool ShowViewportHud
+        {
+            get => _showViewportHud;
+            set
+            {
+                if (_showViewportHud != value)
+                {
+                    _showViewportHud = value;
+                    Raise(nameof(ShowViewportHud));
+                    System.Diagnostics.Trace.WriteLine($"[DIM] Viewport HUD Enabled = {_showViewportHud}");
+                    Module1.Current?.Engine?.RefreshOverlayLayout();
+                }
+            }
         }
 
         // ── Measurement method ────────────────────────────────────────────────────
@@ -209,7 +284,15 @@ namespace GeoMetrics.Models
         public int Precision
         {
             get => _precision;
-            set { _precision = value; Raise(nameof(Precision)); }
+            set
+            {
+                if (_precision != value)
+                {
+                    _precision = value;
+                    Raise(nameof(Precision));
+                    Module1.Current?.Engine?.RefreshOverlayLayout();
+                }
+            }
         }
 
         private double _areaTolerance = 5.0;
@@ -227,9 +310,13 @@ namespace GeoMetrics.Models
             get => _dimensionStyle;
             set
             {
-                _dimensionStyle = value;
-                Raise(nameof(DimensionStyle));
-                System.Diagnostics.Trace.WriteLine($"[DIM] Style = {_dimensionStyle}");
+                if (_dimensionStyle != value)
+                {
+                    _dimensionStyle = value;
+                    Raise(nameof(DimensionStyle));
+                    System.Diagnostics.Trace.WriteLine($"[DIM] Style = {_dimensionStyle}");
+                    Module1.Current?.Engine?.RefreshOverlayLayout();
+                }
             }
         }
 
@@ -237,7 +324,15 @@ namespace GeoMetrics.Models
         public TextColorOption TextColor
         {
             get => _textColor;
-            set { _textColor = value; Raise(nameof(TextColor)); }
+            set
+            {
+                if (_textColor != value)
+                {
+                    _textColor = value;
+                    Raise(nameof(TextColor));
+                    Module1.Current?.Engine?.RefreshOverlayLayout();
+                }
+            }
         }
 
         private double _offsetPixels = 14.0;
@@ -245,7 +340,15 @@ namespace GeoMetrics.Models
         public double OffsetPixels
         {
             get => _offsetPixels;
-            set { _offsetPixels = value; Raise(nameof(OffsetPixels)); }
+            set
+            {
+                if (Math.Abs(_offsetPixels - value) > 0.001)
+                {
+                    _offsetPixels = value;
+                    Raise(nameof(OffsetPixels));
+                    Module1.Current?.Engine?.RefreshOverlayLayout();
+                }
+            }
         }
 
         // ── Live status (set by engine — read-only from UI) ───────────────────────
