@@ -130,11 +130,73 @@ namespace GeoMetrics.Rendering
         }
 
         /// <summary>
+        /// Returns the inward normal unit vector (nx, ny) pointing into the interior of a polygon for segment a→b.
+        /// Inverts outward normal and validates containment using GeometryEngine.
+        /// </summary>
+        public static (double nx, double ny) GetInwardNormal(MapPoint a, MapPoint b, Polygon polygon, double mpp)
+        {
+            var (outNx, outNy) = GetOutwardNormal(a, b);
+            double inNx = -outNx;
+            double inNy = -outNy;
+
+            if (polygon == null || polygon.IsEmpty)
+                return (inNx, inNy);
+
+            try
+            {
+                var sr = a.SpatialReference ?? b.SpatialReference;
+                double mx = (a.X + b.X) / 2.0;
+                double my = (a.Y + b.Y) / 2.0;
+                double probeDist = Math.Max(0.1, 2.0 * mpp);
+
+                var (pDx, pDy) = MetersToMapDelta(inNx * probeDist, inNy * probeDist, sr, my);
+                var probePt = MapPointBuilderEx.CreateMapPoint(mx + pDx, my + pDy, sr);
+
+                var polySr = polygon.SpatialReference;
+                var ptInPolySr = (polySr != null && sr != null && !sr.IsEqual(polySr))
+                    ? (GeometryEngine.Instance.Project(probePt, polySr) as MapPoint ?? probePt)
+                    : probePt;
+
+                if (GeometryEngine.Instance.Contains(polygon, ptInPolySr))
+                {
+                    return (inNx, inNy);
+                }
+
+                // If inNx, inNy was outside (e.g. CCW ring), check if outward direction is inside
+                var (outDx, outDy) = MetersToMapDelta(outNx * probeDist, outNy * probeDist, sr, my);
+                var probePtOut = MapPointBuilderEx.CreateMapPoint(mx + outDx, my + outDy, sr);
+                var ptOutInPolySr = (polySr != null && sr != null && !sr.IsEqual(polySr))
+                    ? (GeometryEngine.Instance.Project(probePtOut, polySr) as MapPoint ?? probePtOut)
+                    : probePtOut;
+
+                if (GeometryEngine.Instance.Contains(polygon, ptOutInPolySr))
+                {
+                    return (outNx, outNy);
+                }
+            }
+            catch
+            {
+                // Fallback to geometric inversion
+            }
+
+            return (inNx, inNy);
+        }
+
+        /// <summary>
         /// Calculates the dynamic midpoint of a segment within the currently visible viewport.
         /// When zoomed in so that only part of a long segment is on screen, this returns the midpoint
         /// of the VISIBLE portion of the segment so the dimension label is always visible (like ArcGIS Pro Maplex).
         /// </summary>
         public static MapPoint GetDynamicSegmentAnchor(MapView mapView, MapPoint a, MapPoint b, double offsetMeters)
+        {
+            var (nx, ny) = GetOutwardNormal(a, b);
+            return GetDynamicSegmentAnchor(mapView, a, b, offsetMeters, nx, ny);
+        }
+
+        /// <summary>
+        /// Calculates the dynamic midpoint of a segment within the currently visible viewport using an explicit normal vector.
+        /// </summary>
+        public static MapPoint GetDynamicSegmentAnchor(MapView mapView, MapPoint a, MapPoint b, double offsetMeters, double nx, double ny)
         {
             if (a == null || b == null) return a;
             if (mapView == null) return GetOffsetMidpoint(a, b, offsetMeters);
@@ -205,7 +267,6 @@ namespace GeoMetrics.Rendering
             if (Math.Abs(offsetMeters) < 1e-12)
                 return anchorMidpoint;
 
-            var (nx, ny) = GetOutwardNormal(a, b);
             var (dxMap, dyMap) = MetersToMapDelta(nx * offsetMeters, ny * offsetMeters, sr, anchorMidpoint.Y);
 
             return MapPointBuilderEx.CreateMapPoint(

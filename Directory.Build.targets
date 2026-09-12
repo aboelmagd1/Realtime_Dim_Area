@@ -1,0 +1,4 @@
+<Project>
+  <Target Name="ArcGISInstallOutput" />
+  <Target Name="PackageArcGISContents" />
+</Project>

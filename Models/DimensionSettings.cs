@@ -95,6 +95,65 @@ namespace GeoMetrics.Models
             }
         }
 
+        // ── Multi-Feature Selection ──────────────────────────────────────────────
+        private bool _multiFeatureEnabled = false;
+        /// <summary>
+        /// When enabled, GeoMetrics measures and annotates all selected features instead of only the first one (Default: OFF).
+        /// </summary>
+        public bool MultiFeatureEnabled
+        {
+            get => _multiFeatureEnabled;
+            set
+            {
+                if (_multiFeatureEnabled != value)
+                {
+                    _multiFeatureEnabled = value;
+                    Raise(nameof(MultiFeatureEnabled));
+                    System.Diagnostics.Trace.WriteLine($"[DIM] MultiFeatureEnabled = {_multiFeatureEnabled}");
+                    Module1.Current?.Engine?.RefreshSelectionDisplay();
+                }
+            }
+        }
+
+        private bool _multiFeaturePolygonInside = true;
+        /// <summary>
+        /// When multi-feature selection is enabled, draws polygon segment dimensions inside the polygon interior (Default: ON).
+        /// </summary>
+        public bool MultiFeaturePolygonInside
+        {
+            get => _multiFeaturePolygonInside;
+            set
+            {
+                if (_multiFeaturePolygonInside != value)
+                {
+                    _multiFeaturePolygonInside = value;
+                    Raise(nameof(MultiFeaturePolygonInside));
+                    System.Diagnostics.Trace.WriteLine($"[DIM] MultiFeaturePolygonInside = {_multiFeaturePolygonInside}");
+                    Module1.Current?.Engine?.RefreshOverlayLayout();
+                }
+            }
+        }
+
+        private int _maxFeaturesLimit = 50;
+        /// <summary>
+        /// Maximum number of selected features to measure simultaneously (Default: 50).
+        /// </summary>
+        public int MaxFeaturesLimit
+        {
+            get => _maxFeaturesLimit;
+            set
+            {
+                int clamped = System.Math.Clamp(value, 1, 500);
+                if (_maxFeaturesLimit != clamped)
+                {
+                    _maxFeaturesLimit = clamped;
+                    Raise(nameof(MaxFeaturesLimit));
+                    System.Diagnostics.Trace.WriteLine($"[DIM] MaxFeaturesLimit = {_maxFeaturesLimit}");
+                    Module1.Current?.Engine?.RefreshSelectionDisplay();
+                }
+            }
+        }
+
         // ── Optional target layer ─────────────────────────────────────────────────
         private FeatureLayer _targetLayer;
         /// <summary>When set, the monitor loads features from this layer only.</summary>
@@ -109,6 +168,7 @@ namespace GeoMetrics.Models
                 Module1.Current?.Engine?.RefreshSelectionDisplay();
             }
         }
+
 
         // ── Display toggles ───────────────────────────────────────────────────────
         private bool _showSegmentLength = true;
@@ -254,6 +314,25 @@ namespace GeoMetrics.Models
                     _showViewportHud = value;
                     Raise(nameof(ShowViewportHud));
                     System.Diagnostics.Trace.WriteLine($"[DIM] Viewport HUD Enabled = {_showViewportHud}");
+                    Module1.Current?.Engine?.RefreshOverlayLayout();
+                }
+            }
+        }
+
+        private bool _showHiddenDimensionsWarning = false;
+        /// <summary>
+        /// Show warning in the viewport top-right when some segments in the viewport are not displayed due to zoom or length (Default: OFF).
+        /// </summary>
+        public bool ShowHiddenDimensionsWarning
+        {
+            get => _showHiddenDimensionsWarning;
+            set
+            {
+                if (_showHiddenDimensionsWarning != value)
+                {
+                    _showHiddenDimensionsWarning = value;
+                    Raise(nameof(ShowHiddenDimensionsWarning));
+                    System.Diagnostics.Trace.WriteLine($"[DIM] ShowHiddenDimensionsWarning = {_showHiddenDimensionsWarning}");
                     Module1.Current?.Engine?.RefreshOverlayLayout();
                 }
             }

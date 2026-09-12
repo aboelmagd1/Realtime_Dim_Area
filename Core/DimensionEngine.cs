@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -9,6 +10,7 @@ using ArcGIS.Core.Geometry;
 using ArcGIS.Desktop.Framework.Threading.Tasks;
 using ArcGIS.Desktop.Mapping;
 using GeoMetrics.Measurement;
+using GeoMetrics.Models;
 using GeoMetrics.Rendering;
 using GeoMetrics.Utilities;
 
@@ -395,84 +397,13 @@ namespace GeoMetrics.Core
                 var settings = Module1.Current?.Settings;
                 if (settings == null) return;
 
-                FeatureLayer target = settings.TargetLayer;
-
-                if (target == null)
+                if (settings.MultiFeatureEnabled)
                 {
-                    target = map.GetLayersAsFlattenedList()
-                        .OfType<FeatureLayer>()
-                        .FirstOrDefault(l => (l.ShapeType == esriGeometryType.esriGeometryPolygon ||
-                                             l.ShapeType == esriGeometryType.esriGeometryPolyline) &&
-                                            (l.GetSelection()?.GetCount() ?? 0) > 0);
+                    RefreshMultiFeatureSelectionInternal(mapView, map, settings);
                 }
-
-                if (target == null)
+                else
                 {
-                    if (_lastSelectionHash != 0)
-                    {
-                        _lastSelectionHash = 0;
-                        _overlayManager?.Clear();
-                    }
-                    return;
-                }
-
-                bool isService = LayerHelper.IsServiceLayer(target);
-                Trace.WriteLine($"[DIM] Target Layer = {target.Name}");
-                Trace.WriteLine($"[DIM] IsServiceLayer = {isService}");
-
-                if (isService && !settings.ApplyToServiceLayers)
-                {
-                    Trace.WriteLine("[DIM] Service Layer Processing = Disabled");
-                    ShowServiceLayerExcludedFeedback(target.Name);
-                    if (_lastSelectionHash != 0)
-                    {
-                        _lastSelectionHash = 0;
-                        _overlayManager?.Clear();
-                    }
-                    return;
-                }
-
-                if (isService && settings.ApplyToServiceLayers)
-                {
-                    Trace.WriteLine("[DIM] Service Layer Processing = Enabled");
-                }
-
-                var sel = target.GetSelection();
-                if (sel == null || sel.GetCount() == 0)
-                {
-                    if (_lastSelectionHash != 0)
-                    {
-                        _lastSelectionHash = 0;
-                        _overlayManager?.Clear();
-                    }
-                    return;
-                }
-
-                var oids = sel.GetObjectIDs();
-                if (oids == null || !oids.Any())
-                {
-                    if (_lastSelectionHash != 0)
-                    {
-                        _lastSelectionHash = 0;
-                        _overlayManager?.Clear();
-                    }
-                    return;
-                }
-
-                long firstOid = oids.First();
-                using var cursor = sel.Search(null);
-                if (cursor != null && cursor.MoveNext() && cursor.Current is Feature feat)
-                {
-                    var selectedGeom = feat.GetShape();
-                    if (selectedGeom != null && !selectedGeom.IsEmpty)
-                    {
-                        int hash = (int)(firstOid * 397) ^ (selectedGeom is Multipart mp ? mp.PointCount : 0);
-                        if (hash != _lastSelectionHash || !_overlayManager.HasCachedData)
-                        {
-                            _lastSelectionHash = hash;
-                            RenderGeometryDirectInternal(selectedGeom, mapView);
-                        }
-                    }
+                    RefreshSingleFeatureSelectionInternal(mapView, map, settings);
                 }
             }
             catch (Exception ex)
@@ -481,17 +412,185 @@ namespace GeoMetrics.Core
             }
         }
 
-        private void RenderGeometryDirectInternal(Geometry geom, MapView mapView)
+        private void RefreshSingleFeatureSelectionInternal(MapView mapView, Map map, DimensionSettings settings)
+        {
+            FeatureLayer target = settings.TargetLayer;
+
+            if (target == null)
+            {
+                target = map.GetLayersAsFlattenedList()
+                    .OfType<FeatureLayer>()
+                    .FirstOrDefault(l => (l.ShapeType == esriGeometryType.esriGeometryPolygon ||
+                                         l.ShapeType == esriGeometryType.esriGeometryPolyline) &&
+                                        (l.GetSelection()?.GetCount() ?? 0) > 0);
+            }
+
+            if (target == null)
+            {
+                if (_lastSelectionHash != 0)
+                {
+                    _lastSelectionHash = 0;
+                    _overlayManager?.Clear();
+                }
+                return;
+            }
+
+            bool isService = LayerHelper.IsServiceLayer(target);
+            Trace.WriteLine($"[DIM] Target Layer = {target.Name}");
+            Trace.WriteLine($"[DIM] IsServiceLayer = {isService}");
+
+            if (isService && !settings.ApplyToServiceLayers)
+            {
+                Trace.WriteLine("[DIM] Service Layer Processing = Disabled");
+                ShowServiceLayerExcludedFeedback(target.Name);
+                if (_lastSelectionHash != 0)
+                {
+                    _lastSelectionHash = 0;
+                    _overlayManager?.Clear();
+                }
+                return;
+            }
+
+            if (isService && settings.ApplyToServiceLayers)
+            {
+                Trace.WriteLine("[DIM] Service Layer Processing = Enabled");
+            }
+
+            var sel = target.GetSelection();
+            if (sel == null || sel.GetCount() == 0)
+            {
+                if (_lastSelectionHash != 0)
+                {
+                    _lastSelectionHash = 0;
+                    _overlayManager?.Clear();
+                }
+                return;
+            }
+
+            var oids = sel.GetObjectIDs();
+            if (oids == null || !oids.Any())
+            {
+                if (_lastSelectionHash != 0)
+                {
+                    _lastSelectionHash = 0;
+                    _overlayManager?.Clear();
+                }
+                return;
+            }
+
+            long firstOid = oids.First();
+            using var cursor = sel.Search(null);
+            if (cursor != null && cursor.MoveNext() && cursor.Current is Feature feat)
+            {
+                var selectedGeom = feat.GetShape();
+                if (selectedGeom != null && !selectedGeom.IsEmpty)
+                {
+                    int hash = (int)(firstOid * 397) ^ (selectedGeom is Multipart mp ? mp.PointCount : 0);
+                    if (hash != _lastSelectionHash || !_overlayManager.HasCachedData)
+                    {
+                        _lastSelectionHash = hash;
+                        RenderGeometryDirectInternal(selectedGeom, mapView);
+                    }
+                }
+            }
+        }
+
+        private void RefreshMultiFeatureSelectionInternal(MapView mapView, Map map, DimensionSettings settings)
+        {
+            var targetLayers = new List<FeatureLayer>();
+            if (settings.TargetLayer != null)
+            {
+                targetLayers.Add(settings.TargetLayer);
+            }
+            else
+            {
+                var candidateLayers = map.GetLayersAsFlattenedList()
+                    .OfType<FeatureLayer>()
+                    .Where(l => (l.ShapeType == esriGeometryType.esriGeometryPolygon ||
+                                 l.ShapeType == esriGeometryType.esriGeometryPolyline) &&
+                                (l.GetSelection()?.GetCount() ?? 0) > 0);
+                targetLayers.AddRange(candidateLayers);
+            }
+
+            if (targetLayers.Count == 0)
+            {
+                if (_lastSelectionHash != 0)
+                {
+                    _lastSelectionHash = 0;
+                    _overlayManager?.Clear();
+                }
+                return;
+            }
+
+            int maxFeatures = Math.Max(1, settings.MaxFeaturesLimit);
+            var collected = new List<(long oid, Geometry geom)>();
+
+            foreach (var layer in targetLayers)
+            {
+                if (collected.Count >= maxFeatures) break;
+
+                bool isService = LayerHelper.IsServiceLayer(layer);
+                if (isService && !settings.ApplyToServiceLayers)
+                {
+                    ShowServiceLayerExcludedFeedback(layer.Name);
+                    continue;
+                }
+
+                var sel = layer.GetSelection();
+                if (sel == null || sel.GetCount() == 0) continue;
+
+                using var cursor = sel.Search(null);
+                while (cursor != null && cursor.MoveNext() && collected.Count < maxFeatures)
+                {
+                    if (cursor.Current is Feature feat)
+                    {
+                        var g = feat.GetShape();
+                        if (g != null && !g.IsEmpty)
+                        {
+                            collected.Add((feat.GetObjectID(), g));
+                        }
+                    }
+                }
+            }
+
+            if (collected.Count == 0)
+            {
+                if (_lastSelectionHash != 0)
+                {
+                    _lastSelectionHash = 0;
+                    _overlayManager?.Clear();
+                }
+                return;
+            }
+
+            var hc = new HashCode();
+            hc.Add(collected.Count);
+            foreach (var (oid, geom) in collected)
+            {
+                hc.Add(oid);
+                if (geom is Multipart mp) hc.Add(mp.PointCount);
+            }
+            int hash = hc.ToHashCode();
+
+            if (hash != _lastSelectionHash || !_overlayManager.HasCachedData)
+            {
+                _lastSelectionHash = hash;
+                RenderMultipleGeometriesInternal(collected.Select(c => c.geom).ToList(), mapView);
+            }
+        }
+
+        private void RenderMultipleGeometriesInternal(IReadOnlyList<Geometry> geometries, MapView mapView)
         {
             var settings = Module1.Current?.Settings;
-            if (settings == null || geom == null || geom.IsEmpty || mapView == null) return;
+            if (settings == null || geometries == null || geometries.Count == 0 || mapView == null) return;
 
             try
             {
                 EnsureOverlayManager(mapView);
 
                 var mapSr = mapView.Map?.SpatialReference;
-                var sr = geom.SpatialReference ?? mapSr;
+                var firstGeom = geometries[0];
+                var sr = firstGeom.SpatialReference ?? mapSr;
                 if (sr != null)
                 {
                     settings.CrsName = sr.Name ?? "Unknown";
@@ -500,36 +599,34 @@ namespace GeoMetrics.Core
                     settings.ResolvedMethod = geo ? "Geodesic" : "Planar";
                 }
 
-                if (geom is Polygon poly)
+                var results = new List<object>();
+                foreach (var geom in geometries)
                 {
-                    var polyResult = GeometryMeasurementService.MeasurePolygon(poly, settings, mapSr);
-                    _overlayManager.UpdateFromPolygon(polyResult, settings);
-
-                    if (polyResult != null)
+                    if (geom is Polygon poly)
                     {
-                        if (polyResult.Segments != null && polyResult.Segments.Count > 0)
-                        {
-                            Trace.WriteLine($"[DIM] Formatted Segment = {UnitConverter.FormatLength(polyResult.Segments[0].DisplayLength, settings.Precision, polyResult.Segments[0].UnitAbbrev)}");
-                        }
-                        Trace.WriteLine($"[DIM] Formatted Area = {UnitConverter.FormatArea(polyResult.DisplayArea, settings.Precision, polyResult.AreaUnitAbbrev)}");
-                        Trace.WriteLine($"[DIM] Formatted Perimeter = {UnitConverter.FormatLength(polyResult.DisplayPerimeter, settings.Precision, polyResult.LinearUnitAbbrev)}");
+                        var polyResult = GeometryMeasurementService.MeasurePolygon(poly, settings, mapSr);
+                        if (polyResult != null) results.Add(polyResult);
+                    }
+                    else if (geom is Polyline line)
+                    {
+                        var lineResult = GeometryMeasurementService.MeasurePolyline(line, settings, mapSr);
+                        if (lineResult != null) results.Add(lineResult);
                     }
                 }
-                else if (geom is Polyline line)
-                {
-                    var lineResult = GeometryMeasurementService.MeasurePolyline(line, settings, mapSr);
-                    _overlayManager.UpdateFromPolyline(lineResult, settings);
 
-                    if (lineResult != null && lineResult.Segments != null && lineResult.Segments.Count > 0)
-                    {
-                        Trace.WriteLine($"[DIM] Formatted Segment = {UnitConverter.FormatLength(lineResult.Segments[0].DisplayLength, settings.Precision, lineResult.Segments[0].UnitAbbrev)}");
-                    }
-                }
+                _overlayManager.UpdateFromResults(results, settings);
+                Trace.WriteLine($"[DIM] Rendered {results.Count} feature(s) in overlay.");
             }
             catch (Exception ex)
             {
-                Trace.WriteLine($"[DIM] RenderGeometryDirectInternal error: {ex.Message}");
+                Trace.WriteLine($"[DIM] RenderMultipleGeometriesInternal error: {ex.Message}");
             }
+        }
+
+        private void RenderGeometryDirectInternal(Geometry geom, MapView mapView)
+        {
+            if (geom == null || geom.IsEmpty || mapView == null) return;
+            RenderMultipleGeometriesInternal(new[] { geom }, mapView);
         }
 
         private static string _lastFeedbackLayer;

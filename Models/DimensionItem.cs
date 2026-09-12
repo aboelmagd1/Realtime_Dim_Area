@@ -42,5 +42,9 @@ namespace GeoMetrics.Models
         public string UnitAbbrev { get; set; }
 
         public int SegmentIndex { get; set; }
+
+        public Polygon SourcePolygon { get; set; }
+
+        public long FeatureId { get; set; }
     }
 }

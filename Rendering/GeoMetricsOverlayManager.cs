@@ -70,6 +70,8 @@ namespace GeoMetrics.Rendering
 
         // ── Measurement Ingestion (Called when Geometry changes) ──────────────────
 
+        // ── Measurement Ingestion (Called when Geometry changes) ──────────────────
+
         public void UpdateFromPolygon(PolygonMeasurementResult result, DimensionSettings settings)
         {
             if (result == null || _mapView == null)
@@ -77,12 +79,59 @@ namespace GeoMetrics.Rendering
                 Clear();
                 return;
             }
+            UpdateFromResults(new object[] { result }, settings);
+        }
+
+        public void UpdateFromPolyline(PolylineMeasurementResult result, DimensionSettings settings)
+        {
+            if (result == null || _mapView == null)
+            {
+                Clear();
+                return;
+            }
+            UpdateFromResults(new object[] { result }, settings);
+        }
+
+        public void UpdateFromResults(IReadOnlyList<object> results, DimensionSettings settings)
+        {
+            if (results == null || results.Count == 0 || _mapView == null)
+            {
+                Clear();
+                return;
+            }
 
             _cachedMeasurements.Clear();
-            _cachedMeasurements.GeometryType = GeometryType.Polygon;
-            _cachedMeasurements.SourcePolygon = result.SourcePolygon;
+            _cachedMeasurements.FeatureCount = results.Count;
+
+            foreach (var res in results)
+            {
+                if (res is PolygonMeasurementResult polyResult)
+                {
+                    IngestPolygonResult(polyResult, settings);
+                }
+                else if (res is PolylineMeasurementResult lineResult)
+                {
+                    IngestPolylineResult(lineResult, settings);
+                }
+            }
+
+            UpdateLayout(settings);
+        }
+
+        private void IngestPolygonResult(PolygonMeasurementResult result, DimensionSettings settings)
+        {
+            if (result == null) return;
+
+            if (result.SourcePolygon != null)
+            {
+                _cachedMeasurements.SourcePolygons.Add(result.SourcePolygon);
+                if (_cachedMeasurements.SpatialReference == null)
+                {
+                    _cachedMeasurements.SpatialReference = result.InteriorLabelPoint?.SpatialReference ?? result.SourcePolygon.SpatialReference;
+                }
+            }
             _cachedMeasurements.PolygonResult = result;
-            _cachedMeasurements.SpatialReference = result.InteriorLabelPoint?.SpatialReference ?? result.SourcePolygon?.SpatialReference;
+            _cachedMeasurements.GeometryType = GeometryType.Polygon;
 
             // 1. Area Item
             if (result.InteriorLabelPoint != null)
@@ -94,7 +143,8 @@ namespace GeoMetrics.Rendering
                     AnchorPoint = result.InteriorLabelPoint,
                     Angle = 0,
                     IsVisible = settings.ShowArea,
-                    UnitAbbrev = result.AreaUnitAbbrev
+                    UnitAbbrev = result.AreaUnitAbbrev,
+                    SourcePolygon = result.SourcePolygon
                 });
             }
 
@@ -115,7 +165,8 @@ namespace GeoMetrics.Rendering
                         IsVisible = settings.ShowSegmentLength,
                         Bearing = seg.Bearing,
                         UnitAbbrev = seg.UnitAbbrev,
-                        SegmentIndex = i
+                        SegmentIndex = i,
+                        SourcePolygon = result.SourcePolygon
                     });
                 }
             }
@@ -130,7 +181,8 @@ namespace GeoMetrics.Rendering
                     AnchorPoint = result.InteriorLabelPoint,
                     Angle = 0,
                     IsVisible = settings.ShowPerimeter,
-                    UnitAbbrev = result.LinearUnitAbbrev
+                    UnitAbbrev = result.LinearUnitAbbrev,
+                    SourcePolygon = result.SourcePolygon
                 });
             }
 
@@ -147,7 +199,8 @@ namespace GeoMetrics.Rendering
                         StartPoint = va.PrevPoint,
                         EndPoint = va.NextPoint,
                         Angle = 0,
-                        IsVisible = settings.ShowVertexAngles
+                        IsVisible = settings.ShowVertexAngles,
+                        SourcePolygon = result.SourcePolygon
                     });
                 }
             }
@@ -174,12 +227,12 @@ namespace GeoMetrics.Rendering
                     DisplayText = string.Join("\n", lines),
                     AnchorPoint = result.InteriorLabelPoint,
                     Angle = 0,
-                    IsVisible = true
+                    IsVisible = true,
+                    SourcePolygon = result.SourcePolygon
                 });
             }
 
             // 6. Vertex Coordinates & Caching
-            _cachedMeasurements.Vertices.Clear();
             if (result.SourcePolygon != null && result.SourcePolygon.Parts != null)
             {
                 foreach (var part in result.SourcePolygon.Parts)
@@ -211,7 +264,8 @@ namespace GeoMetrics.Rendering
                             StartPoint = a,
                             EndPoint = b,
                             Angle = 0,
-                            IsVisible = settings.ShowVertexCoordinates
+                            IsVisible = settings.ShowVertexCoordinates,
+                            SourcePolygon = result.SourcePolygon
                         });
                     }
                 }
@@ -224,23 +278,22 @@ namespace GeoMetrics.Rendering
                     if (s.Start != null) _cachedMeasurements.Vertices.Add(s.Start);
                 }
             }
-
-            // Execute viewport-aware layout and rendering
-            UpdateLayout(settings);
         }
 
-        public void UpdateFromPolyline(PolylineMeasurementResult result, DimensionSettings settings)
+        private void IngestPolylineResult(PolylineMeasurementResult result, DimensionSettings settings)
         {
-            if (result == null || _mapView == null)
-            {
-                Clear();
-                return;
-            }
+            if (result == null) return;
 
-            _cachedMeasurements.Clear();
-            _cachedMeasurements.GeometryType = GeometryType.Polyline;
-            _cachedMeasurements.SourcePolyline = result.SourcePolyline;
+            if (result.SourcePolyline != null)
+            {
+                _cachedMeasurements.SourcePolylines.Add(result.SourcePolyline);
+                if (_cachedMeasurements.SpatialReference == null)
+                {
+                    _cachedMeasurements.SpatialReference = result.SourcePolyline.SpatialReference;
+                }
+            }
             _cachedMeasurements.PolylineResult = result;
+            _cachedMeasurements.GeometryType = GeometryType.Polyline;
 
             if (result.Segments != null)
             {
@@ -280,7 +333,6 @@ namespace GeoMetrics.Rendering
                 }
             }
 
-            _cachedMeasurements.Vertices.Clear();
             if (result.SourcePolyline != null && result.SourcePolyline.Parts != null)
             {
                 foreach (var part in result.SourcePolyline.Parts)
@@ -332,8 +384,6 @@ namespace GeoMetrics.Rendering
                     _cachedMeasurements.Vertices.Add(result.Segments[^1].End);
                 }
             }
-
-            UpdateLayout(settings);
         }
 
         // ── Viewport Change Handler (Called when MapView zooms, pans, navigates) ──
@@ -361,23 +411,30 @@ namespace GeoMetrics.Rendering
             var (textColor, haloColor) = ResolveTextAndHaloColor(settings);
             double baseOffsetMeters = Math.Max(6.0, settings.OffsetPixels) * mpp;
 
-            // 1. Process Area Item (Priority 1) with Dynamic Viewport-Aware Interior Placement
-            var areaItem = _cachedMeasurements.Items.FirstOrDefault(i => i.Role == DimensionItemRole.Area);
-            MapPoint dynamicAreaAnchor = areaItem?.AnchorPoint;
-
-            if (areaItem != null && settings.ShowArea)
+            // 1. Process Area Items (Priority 1) with Dynamic Viewport-Aware Interior Placement
+            if (settings.ShowArea)
             {
-                // If zoomed in, calculate interior label point inside the visible part of the polygon
-                if (_cachedMeasurements.SourcePolygon != null)
-                {
-                    dynamicAreaAnchor = DimensionLabelManager.GetDynamicInteriorLabelPoint(
-                        _mapView, _cachedMeasurements.SourcePolygon, areaItem.AnchorPoint);
-                }
+                var areaItems = _cachedMeasurements.Items
+                    .Where(i => i.Role == DimensionItemRole.Area)
+                    .ToList();
 
-                if (dynamicAreaAnchor != null && DimensionLabelManager.IsInViewport(_mapView, dynamicAreaAnchor))
+                foreach (var areaItem in areaItems)
                 {
-                    string areaText = UnitConverter.FormatArea(areaItem.Value, settings.Precision, areaItem.UnitAbbrev);
-                    PlaceText(dynamicAreaAnchor, areaText, 0, DimensionItemRole.Area, textColor, haloColor);
+                    MapPoint dynamicAreaAnchor = areaItem.AnchorPoint;
+
+                    // If zoomed in, calculate interior label point inside the visible part of the polygon
+                    var poly = areaItem.SourcePolygon ?? _cachedMeasurements.SourcePolygon;
+                    if (poly != null)
+                    {
+                        dynamicAreaAnchor = DimensionLabelManager.GetDynamicInteriorLabelPoint(
+                            _mapView, poly, areaItem.AnchorPoint);
+                    }
+
+                    if (dynamicAreaAnchor != null && DimensionLabelManager.IsInViewport(_mapView, dynamicAreaAnchor))
+                    {
+                        string areaText = UnitConverter.FormatArea(areaItem.Value, settings.Precision, areaItem.UnitAbbrev);
+                        PlaceText(dynamicAreaAnchor, areaText, 0, DimensionItemRole.Area, textColor, haloColor);
+                    }
                 }
             }
 
@@ -387,16 +444,12 @@ namespace GeoMetrics.Rendering
                 RenderViewportHud(settings, textColor, haloColor);
             }
 
-            if (farZoom)
-            {
-                // In far zoom, only show area label and HUD to avoid visual clutter
-                return;
-            }
-
             // 2. Process Segment Items with Dynamic Visible-Section Anchoring (Maplex "Offset straight / Best position")
             var segmentItems = _cachedMeasurements.Items
                 .Where(i => i.Role == DimensionItemRole.Segment)
                 .ToList();
+
+            bool hasHiddenInViewport = false;
 
             if (settings.ShowSegmentLength && segmentItems.Count > 0)
             {
@@ -409,124 +462,197 @@ namespace GeoMetrics.Rendering
                         .Take(take);
                 }
 
-                foreach (var segItem in activeSegments)
+                var activeSet = new HashSet<DimensionItem>(activeSegments);
+
+                if (!farZoom)
                 {
-                    var a = segItem.StartPoint;
-                    var b = segItem.EndPoint;
-                    if (a == null || b == null) continue;
-
-                    // Check if any portion of the segment is in the visible viewport
-                    if (!DimensionLabelManager.IsSegmentInViewport(_mapView, a, b))
+                    foreach (var segItem in activeSegments)
                     {
-                        continue;
-                    }
+                        var a = segItem.StartPoint;
+                        var b = segItem.EndPoint;
+                        if (a == null || b == null) continue;
 
-                    // Screen length check
-                    double screenLen = DimensionLabelManager.GetScreenLength(_mapView, a, b);
-                    if (screenLen < MinScreenSegmentLengthPx)
-                    {
-                        continue;
-                    }
-
-                    // Calculate normalized angle & dynamic anchor on the visible section of the line
-                    double angleDeg = DimensionLabelManager.GetLabelAngle(a, b);
-                    var (nx, ny) = DimensionLabelManager.GetOutwardNormal(a, b);
-                    double offsetMeters = baseOffsetMeters;
-
-                    // Dynamic anchor: if zoomed in, places label at the midpoint of the VISIBLE piece of the segment
-                    var dynamicSegAnchor = DimensionLabelManager.GetDynamicSegmentAnchor(_mapView, a, b, offsetMeters);
-
-                    // Format text based on style (Numbers_Only shows NUMBER + UNIT)
-                    string segText = UnitConverter.FormatLength(segItem.Value, settings.Precision, segItem.UnitAbbrev);
-
-                    if (segItem.Bearing.HasValue && settings.ShowBearings)
-                        segText += $"  ({UnitConverter.FormatBearing(segItem.Bearing.Value)})";
-
-                    // Render based on style
-                    if (settings.DimensionStyle == DimensionStyleOption.Numbers_Only)
-                    {
-                        PlaceText(dynamicSegAnchor, segText, angleDeg, DimensionItemRole.Segment, textColor, haloColor);
-                    }
-                    else
-                    {
-                        // CAD Standard / Minimal / High Contrast
-                        double gapMeters = 3.0 * mpp;
-                        double overhgMeters = 4.0 * mpp;
-                        double tickMeters = 5.0 * mpp;
-
-                        var aSr = a.SpatialReference;
-                        var bSr = b.SpatialReference;
-
-                        var (aOffDx, aOffDy) = DimensionLabelManager.MetersToMapDelta(nx * offsetMeters, ny * offsetMeters, aSr, a.Y);
-                        var (bOffDx, bOffDy) = DimensionLabelManager.MetersToMapDelta(nx * offsetMeters, ny * offsetMeters, bSr, b.Y);
-
-                        var aOff = MapPointBuilderEx.CreateMapPoint(a.X + aOffDx, a.Y + aOffDy, aSr);
-                        var bOff = MapPointBuilderEx.CreateMapPoint(b.X + bOffDx, b.Y + bOffDy, bSr);
-
-                        var lineColor = StyleLineColor(settings);
-                        var dimSym = SymbolFactory.Instance.ConstructLineSymbol(lineColor, 1.4);
-                        var extSym = SymbolFactory.Instance.ConstructLineSymbol(lineColor, 0.8);
-
-                        // Dimension line A' ── B'
-                        AddLine(aOff, bOff, dimSym);
-
-                        // Extension lines (skipped in Minimal style)
-                        if (settings.DimensionStyle != DimensionStyleOption.Minimal)
+                        // Check if any portion of the segment is in the visible viewport
+                        if (!DimensionLabelManager.IsSegmentInViewport(_mapView, a, b))
                         {
-                            var (e1f, e1t) = DimensionLabelManager.GetExtensionLine(a, gapMeters, overhgMeters, offsetMeters, nx, ny);
-                            var (e2f, e2t) = DimensionLabelManager.GetExtensionLine(b, gapMeters, overhgMeters, offsetMeters, nx, ny);
-                            AddLine(e1f, e1t, extSym);
-                            AddLine(e2f, e2t, extSym);
+                            continue;
                         }
 
-                        // Diagonal slash ticks at endpoints
-                        AddSlashTick(aOff, a, b, tickMeters, dimSym);
-                        AddSlashTick(bOff, a, b, tickMeters, dimSym);
+                        // Screen length check
+                        double screenLen = DimensionLabelManager.GetScreenLength(_mapView, a, b);
+                        if (screenLen < MinScreenSegmentLengthPx)
+                        {
+                            continue;
+                        }
 
-                        // Dimension text at dynamic midpoint
-                        PlaceText(dynamicSegAnchor, segText, angleDeg, DimensionItemRole.Segment, textColor, haloColor);
+                        // Determine if segment belongs to a polygon and should be rendered inside
+                        var poly = segItem.SourcePolygon ?? _cachedMeasurements.SourcePolygon;
+                        bool isPolygon = poly != null || _cachedMeasurements.GeometryType == GeometryType.Polygon;
+                        bool placeInside = settings.MultiFeatureEnabled && settings.MultiFeaturePolygonInside && isPolygon;
+
+                        double angleDeg = DimensionLabelManager.GetLabelAngle(a, b);
+                        var (nx, ny) = placeInside
+                            ? DimensionLabelManager.GetInwardNormal(a, b, poly, mpp)
+                            : DimensionLabelManager.GetOutwardNormal(a, b);
+
+                        double offsetMeters = baseOffsetMeters;
+
+                        // Dynamic anchor: if zoomed in, places label at the midpoint of the VISIBLE piece of the segment
+                        var dynamicSegAnchor = DimensionLabelManager.GetDynamicSegmentAnchor(_mapView, a, b, offsetMeters, nx, ny);
+
+                        // Format text based on style (Numbers_Only shows NUMBER + UNIT)
+                        string segText = UnitConverter.FormatLength(segItem.Value, settings.Precision, segItem.UnitAbbrev);
+
+                        if (segItem.Bearing.HasValue && settings.ShowBearings)
+                            segText += $"  ({UnitConverter.FormatBearing(segItem.Bearing.Value)})";
+
+                        // Render based on style
+                        if (settings.DimensionStyle == DimensionStyleOption.Numbers_Only)
+                        {
+                            PlaceText(dynamicSegAnchor, segText, angleDeg, DimensionItemRole.Segment, textColor, haloColor);
+                        }
+                        else
+                        {
+                            // CAD Standard / Minimal / High Contrast
+                            double gapMeters = 3.0 * mpp;
+                            double overhgMeters = 4.0 * mpp;
+                            double tickMeters = 5.0 * mpp;
+
+                            var aSr = a.SpatialReference;
+                            var bSr = b.SpatialReference;
+
+                            var (aOffDx, aOffDy) = DimensionLabelManager.MetersToMapDelta(nx * offsetMeters, ny * offsetMeters, aSr, a.Y);
+                            var (bOffDx, bOffDy) = DimensionLabelManager.MetersToMapDelta(nx * offsetMeters, ny * offsetMeters, bSr, b.Y);
+
+                            var aOff = MapPointBuilderEx.CreateMapPoint(a.X + aOffDx, a.Y + aOffDy, aSr);
+                            var bOff = MapPointBuilderEx.CreateMapPoint(b.X + bOffDx, b.Y + bOffDy, bSr);
+
+                            var lineColor = StyleLineColor(settings);
+                            var dimSym = SymbolFactory.Instance.ConstructLineSymbol(lineColor, 1.4);
+                            var extSym = SymbolFactory.Instance.ConstructLineSymbol(lineColor, 0.8);
+
+                            // Dimension line A' ── B'
+                            AddLine(aOff, bOff, dimSym);
+
+                            // Extension lines (skipped in Minimal style)
+                            if (settings.DimensionStyle != DimensionStyleOption.Minimal)
+                            {
+                                var (e1f, e1t) = DimensionLabelManager.GetExtensionLine(a, gapMeters, overhgMeters, offsetMeters, nx, ny);
+                                var (e2f, e2t) = DimensionLabelManager.GetExtensionLine(b, gapMeters, overhgMeters, offsetMeters, nx, ny);
+                                AddLine(e1f, e1t, extSym);
+                                AddLine(e2f, e2t, extSym);
+                            }
+
+                            // Diagonal slash ticks at endpoints
+                            AddSlashTick(aOff, a, b, tickMeters, dimSym);
+                            AddSlashTick(bOff, a, b, tickMeters, dimSym);
+
+                            // Dimension text at dynamic midpoint
+                            PlaceText(dynamicSegAnchor, segText, angleDeg, DimensionItemRole.Segment, textColor, haloColor);
+                        }
+                    }
+                }
+
+                // Check if any segment located in the viewport is not rendered
+                // (due to far zoom suppression, medium zoom decimation, or short screen length)
+                foreach (var seg in segmentItems)
+                {
+                    var a = seg.StartPoint;
+                    var b = seg.EndPoint;
+                    if (a == null || b == null) continue;
+
+                    if (!DimensionLabelManager.IsSegmentInViewport(_mapView, a, b))
+                        continue;
+
+                    bool isDrawn = !farZoom
+                                && activeSet.Contains(seg)
+                                && (DimensionLabelManager.GetScreenLength(_mapView, a, b) >= MinScreenSegmentLengthPx);
+
+                    if (!isDrawn)
+                    {
+                        hasHiddenInViewport = true;
+                        break;
                     }
                 }
             }
 
-            // 3. Process Perimeter Item (Priority 3)
-            var perimItem = _cachedMeasurements.Items.FirstOrDefault(i => i.Role == DimensionItemRole.Perimeter);
-            var perimAnchor = dynamicAreaAnchor ?? perimItem?.AnchorPoint;
-
-            if (perimItem != null && settings.ShowPerimeter && perimAnchor != null)
+            // 3. Process Hidden Dimensions Warning (Top-Right of Viewport)
+            if (settings.ShowHiddenDimensionsWarning && hasHiddenInViewport)
             {
-                var (pDx, pDy) = DimensionLabelManager.MetersToMapDelta(0, -14.0 * mpp, perimAnchor.SpatialReference, perimAnchor.Y);
-                var pt = MapPointBuilderEx.CreateMapPoint(
-                    perimAnchor.X + pDx,
-                    perimAnchor.Y + pDy,
-                    perimAnchor.SpatialReference);
+                RenderHiddenDimensionsWarning(settings, textColor, haloColor);
+            }
 
-                if (DimensionLabelManager.IsInViewport(_mapView, pt))
+            if (farZoom)
+            {
+                // In far zoom, only show area label, HUD, and hidden warning to avoid visual clutter
+                return;
+            }
+
+            // 3. Process Perimeter Items (Priority 3)
+            if (settings.ShowPerimeter)
+            {
+                var perimItems = _cachedMeasurements.Items
+                    .Where(i => i.Role == DimensionItemRole.Perimeter)
+                    .ToList();
+
+                foreach (var perimItem in perimItems)
                 {
-                    string perimText = (settings.DimensionStyle == DimensionStyleOption.Numbers_Only)
-                        ? UnitConverter.FormatLength(perimItem.Value, settings.Precision, perimItem.UnitAbbrev)
-                        : "P: " + UnitConverter.FormatLength(perimItem.Value, settings.Precision, perimItem.UnitAbbrev);
+                    MapPoint perimAnchor = perimItem.AnchorPoint;
+                    var poly = perimItem.SourcePolygon ?? _cachedMeasurements.SourcePolygon;
+                    if (poly != null)
+                    {
+                        perimAnchor = DimensionLabelManager.GetDynamicInteriorLabelPoint(
+                            _mapView, poly, perimItem.AnchorPoint);
+                    }
 
-                    PlaceText(pt, perimText, 0, DimensionItemRole.Perimeter, textColor, haloColor);
+                    if (perimAnchor != null)
+                    {
+                        var (pDx, pDy) = DimensionLabelManager.MetersToMapDelta(0, -14.0 * mpp, perimAnchor.SpatialReference, perimAnchor.Y);
+                        var pt = MapPointBuilderEx.CreateMapPoint(
+                            perimAnchor.X + pDx,
+                            perimAnchor.Y + pDy,
+                            perimAnchor.SpatialReference);
+
+                        if (DimensionLabelManager.IsInViewport(_mapView, pt))
+                        {
+                            string perimText = (settings.DimensionStyle == DimensionStyleOption.Numbers_Only)
+                                ? UnitConverter.FormatLength(perimItem.Value, settings.Precision, perimItem.UnitAbbrev)
+                                : "P: " + UnitConverter.FormatLength(perimItem.Value, settings.Precision, perimItem.UnitAbbrev);
+
+                            PlaceText(pt, perimText, 0, DimensionItemRole.Perimeter, textColor, haloColor);
+                        }
+                    }
                 }
             }
 
-            // 4. Process QC Item (Priority 4)
-            var qcItem = _cachedMeasurements.Items.FirstOrDefault(i => i.Role == DimensionItemRole.Qc);
-            var qcAnchor = dynamicAreaAnchor ?? qcItem?.AnchorPoint;
+            // 4. Process QC Items (Priority 4)
+            var qcItems = _cachedMeasurements.Items
+                .Where(i => i.Role == DimensionItemRole.Qc)
+                .ToList();
 
-            if (qcItem != null && qcAnchor != null && !string.IsNullOrEmpty(qcItem.DisplayText))
+            foreach (var qcItem in qcItems)
             {
-                double offsetY = (settings.ShowPerimeter ? 30.0 : 16.0) * mpp;
-                var (qcDx, qcDy) = DimensionLabelManager.MetersToMapDelta(0, -offsetY, qcAnchor.SpatialReference, qcAnchor.Y);
-                var pt = MapPointBuilderEx.CreateMapPoint(
-                    qcAnchor.X + qcDx,
-                    qcAnchor.Y + qcDy,
-                    qcAnchor.SpatialReference);
-
-                if (DimensionLabelManager.IsInViewport(_mapView, pt))
+                MapPoint qcAnchor = qcItem.AnchorPoint;
+                var poly = qcItem.SourcePolygon ?? _cachedMeasurements.SourcePolygon;
+                if (poly != null)
                 {
-                    PlaceText(pt, qcItem.DisplayText, 0, DimensionItemRole.Qc, textColor, haloColor);
+                    qcAnchor = DimensionLabelManager.GetDynamicInteriorLabelPoint(
+                        _mapView, poly, qcItem.AnchorPoint);
+                }
+
+                if (qcAnchor != null && !string.IsNullOrEmpty(qcItem.DisplayText))
+                {
+                    double offsetY = (settings.ShowPerimeter ? 30.0 : 16.0) * mpp;
+                    var (qcDx, qcDy) = DimensionLabelManager.MetersToMapDelta(0, -offsetY, qcAnchor.SpatialReference, qcAnchor.Y);
+                    var pt = MapPointBuilderEx.CreateMapPoint(
+                        qcAnchor.X + qcDx,
+                        qcAnchor.Y + qcDy,
+                        qcAnchor.SpatialReference);
+
+                    if (DimensionLabelManager.IsInViewport(_mapView, pt))
+                    {
+                        PlaceText(pt, qcItem.DisplayText, 0, DimensionItemRole.Qc, textColor, haloColor);
+                    }
                 }
             }
 
@@ -842,9 +968,10 @@ namespace GeoMetrics.Rendering
 
                 if (hudAnchor == null) return;
 
+                string featText = _cachedMeasurements.FeatureCount > 1 ? $"Features: {_cachedMeasurements.FeatureCount}\n" : "";
                 string vertText = $"Vertices: {visVerts} (Total: {totalVerts})";
                 string segText = $"Segments: {visSegs} (Total: {totalSegs})";
-                string hudContent = $"{vertText}\n{segText}";
+                string hudContent = $"{featText}{vertText}\n{segText}";
 
                 PlaceHudText(hudAnchor, hudContent, textColor, haloColor);
             }
@@ -898,6 +1025,79 @@ namespace GeoMetrics.Rendering
             catch (Exception ex)
             {
                 Trace.WriteLine($"[DIM] GeoMetricsOverlayManager.PlaceHudText error: {ex.Message}");
+            }
+        }
+
+        private void RenderHiddenDimensionsWarning(DimensionSettings settings, CIMColor textColor, CIMColor haloColor)
+        {
+            if (_mapView == null) return;
+
+            try
+            {
+                var extent = _mapView.Extent;
+                if (extent == null || extent.IsEmpty) return;
+
+                var mapSr = extent.SpatialReference ?? _mapView.Map?.SpatialReference;
+                double mapScale = _mapView.Camera?.Scale ?? 5000;
+                double mpp = DimensionLabelManager.GetMetersPerPixel(mapScale);
+
+                // Position anchor cleanly 24 screen pixels inset from top-right corner of the viewport
+                var (dx, dy) = DimensionLabelManager.MetersToMapDelta(-24.0 * mpp, -24.0 * mpp, mapSr, extent.YMax);
+                var warningAnchor = MapPointBuilderEx.CreateMapPoint(extent.XMax + dx, extent.YMax + dy, mapSr);
+
+                string warningText = "[!] Some dimensions hidden (zoom/short line)";
+                PlaceWarningText(warningAnchor, warningText, textColor, haloColor);
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"[DIM] GeoMetricsOverlayManager.RenderHiddenDimensionsWarning error: {ex.Message}");
+            }
+        }
+
+        private void PlaceWarningText(
+            MapPoint at, string text,
+            CIMColor textColor,
+            CIMColor haloColor)
+        {
+            if (at == null || string.IsNullOrWhiteSpace(text) || _mapView == null) return;
+
+            try
+            {
+                var mapSr = _mapView.Map?.SpatialReference;
+                var ptSr = at.SpatialReference ?? mapSr;
+                var ptToDraw = (mapSr != null && ptSr != null && !ptSr.IsEqual(mapSr))
+                    ? (GeometryEngine.Instance.Project(at, mapSr) as MapPoint ?? at)
+                    : at;
+
+                if (ptToDraw.SpatialReference == null && mapSr != null)
+                {
+                    ptToDraw = MapPointBuilderEx.CreateMapPoint(ptToDraw.X, ptToDraw.Y, mapSr);
+                }
+
+                var sym = SymbolFactory.Instance.ConstructTextSymbol(
+                    textColor, 10.5, "Segoe UI", "Bold");
+                sym.Angle               = 0;
+                sym.HorizontalAlignment = ArcGIS.Core.CIM.HorizontalAlignment.Right;
+                sym.VerticalAlignment   = ArcGIS.Core.CIM.VerticalAlignment.Top;
+                sym.HaloSize            = 2.8;
+                sym.HaloSymbol          = SymbolFactory.Instance.ConstructPolygonSymbol(haloColor);
+
+                var textGraphic = new CIMTextGraphic
+                {
+                    Text   = text,
+                    Symbol = sym.MakeSymbolReference(),
+                    Shape  = ptToDraw
+                };
+
+                var handle = _mapView.AddOverlay(textGraphic);
+                if (handle != null)
+                {
+                    lock (_handles) _handles.Add(handle);
+                }
+            }
+            catch (Exception ex)
+            {
+                Trace.WriteLine($"[DIM] GeoMetricsOverlayManager.PlaceWarningText error: {ex.Message}");
             }
         }
 

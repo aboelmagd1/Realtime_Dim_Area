@@ -15,9 +15,31 @@ namespace GeoMetrics.Models
 
         public SpatialReference SpatialReference { get; set; }
 
-        public Polygon SourcePolygon { get; set; }
+        public Polygon SourcePolygon
+        {
+            get => SourcePolygons.Count > 0 ? SourcePolygons[0] : null;
+            set
+            {
+                SourcePolygons.Clear();
+                if (value != null) SourcePolygons.Add(value);
+            }
+        }
 
-        public Polyline SourcePolyline { get; set; }
+        public Polyline SourcePolyline
+        {
+            get => SourcePolylines.Count > 0 ? SourcePolylines[0] : null;
+            set
+            {
+                SourcePolylines.Clear();
+                if (value != null) SourcePolylines.Add(value);
+            }
+        }
+
+        public List<Polygon> SourcePolygons { get; } = new();
+
+        public List<Polyline> SourcePolylines { get; } = new();
+
+        public int FeatureCount { get; set; }
 
         public PolygonMeasurementResult PolygonResult { get; set; }
 
@@ -30,13 +52,14 @@ namespace GeoMetrics.Models
 
         public void Clear()
         {
-            SourcePolygon = null;
-            SourcePolyline = null;
+            SourcePolygons.Clear();
+            SourcePolylines.Clear();
             PolygonResult = null;
             PolylineResult = null;
             Items.Clear();
             Vertices.Clear();
             Extent = null;
+            FeatureCount = 0;
         }
 
         public bool HasData => Items.Count > 0;

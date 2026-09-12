@@ -227,6 +227,44 @@
                 </StackPanel>
             </GroupBox>
 
+            <!-- ── Multi-Feature Selection ───────────────────────── -->
+            <GroupBox Header="Multi-Feature Selection">
+                <StackPanel>
+                    <CheckBox Content="Enable multi-feature measurements"
+                              FontWeight="SemiBold"
+                              IsChecked="{Binding Settings.MultiFeatureEnabled, Mode=TwoWay}"/>
+                    <TextBlock Style="{StaticResource Hint}"
+                               Text="Measure and annotate all selected features simultaneously instead of only the first feature."/>
+
+                    <DockPanel Margin="0,5,0,2" LastChildFill="True" IsEnabled="{Binding Settings.MultiFeatureEnabled}">
+                        <TextBlock Text="Max features limit:"
+                                   Style="{StaticResource Label}"
+                                   VerticalAlignment="Center"
+                                   DockPanel.Dock="Left"/>
+                        <ComboBox Width="65"
+                                  Height="22"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Center"
+                                  ItemsSource="{Binding MaxFeaturesLimitList}"
+                                  SelectedItem="{Binding Settings.MaxFeaturesLimit, Mode=TwoWay}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" Foreground="{DynamicResource DropdownTextBrush}" VerticalAlignment="Center"/>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </DockPanel>
+
+                    <CheckBox Margin="0,6,0,0"
+                              Content="Place polygon dimensions inside"
+                              IsChecked="{Binding Settings.MultiFeaturePolygonInside, Mode=TwoWay}"
+                              IsEnabled="{Binding Settings.MultiFeatureEnabled}"/>
+                    <TextBlock Style="{StaticResource Hint}"
+                               Margin="18,0,0,2"
+                               Text="Draws dimensions inside polygon boundaries to prevent overlaps between adjacent features."/>
+                </StackPanel>
+            </GroupBox>
+
             <!-- ── Service Layers ───────────────────────────── -->
             <GroupBox Header="Service Layers">
                 <StackPanel>
@@ -286,6 +324,13 @@
                     <TextBlock Style="{StaticResource Hint}"
                                Margin="18,0,0,4"
                                Text="Displays live count of visible vertices and segments at viewport top-left (Default: OFF)."/>
+
+                    <!-- Hidden Dimensions Warning at Viewport Top-Right -->
+                    <CheckBox Content="Hidden dimensions warning (top-right)"
+                              IsChecked="{Binding Settings.ShowHiddenDimensionsWarning, Mode=TwoWay}"/>
+                    <TextBlock Style="{StaticResource Hint}"
+                               Margin="18,0,0,4"
+                               Text="Displays a warning at top-right when some segments are hidden due to zoom level or short length."/>
                 </StackPanel>
             </GroupBox>
 
