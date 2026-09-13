@@ -29,10 +29,13 @@ It operates as a **passive real-time monitor** during standard ArcGIS Pro workfl
 
 - ⚡ **Real-Time 60 FPS Performance**: Frame-coalesced rendering ensures butter-smooth vertex dragging with zero UI lag.
 - 🎯 **Default OFF State**: Add-in starts safely disabled by default and only operates when you turn it ON.
+- 👥 **Multi-Feature Measurements**: Simultaneously measure and number multiple selected polygons/polylines with configurable safety limits (10 to 200 features).
+- 🔲 **Place Dimensions Inside**: Invert offset directions to keep polygon segment labels strictly inside boundary edges, preventing collisions between adjacent parcels.
 - 📍 **Vertex Coordinates (X, Y)**: Live coordinate display for every vertex with configurable decimal places (0 to 8, default 4).
 - 📐 **Corner Angles & Bearings**: Automatic calculation of internal/corner angles and segment direction azimuths.
+- 📊 **Live HUD & Warnings**: On-screen real-time counters for visible vertices/segments and decluttering warnings when zoomed out.
 - 🔍 **Adaptive Viewport Layout (Maplex-Style)**: Labels dynamically reposition when you zoom in on parts of large polygons.
-- 🌓 **Theme-Aware UI**: Full native support for ArcGIS Pro Dark Theme and Light Theme.
+- 🌓 **Theme-Aware UI**: Full native adaptation for ArcGIS Pro Dark and Light themes with dynamic text color contrast (Black on Light Theme, White on Dark Theme).
 - 🛡️ **Service Layer Protection**: Automatically excludes slow remote Feature/Map Services unless explicitly enabled.
 - 📏 **Comprehensive Unit Support**: Meters, Feet, US Survey Feet, Kilometers, Miles, and Native CRS linear units.
 
@@ -84,6 +87,10 @@ It operates as a **passive real-time monitor** during standard ArcGIS Pro workfl
 │ ┌─ Tool State (ON / OFF) ──────────────────────────────┐ │
 │ │  ☑ Enable GeoMetrics (ON / OFF)                      │ │
 │ └──────────────────────────────────────────────────────┘ │
+│ ┌─ Selection & Multi-Feature ──────────────────────────┐ │
+│ │  ☐ Multi-feature measurements   [Max Features: 50 ▼] │ │
+│ │  ☐ Place dimensions inside boundary                  │ │
+│ └──────────────────────────────────────────────────────┘ │
 │ ┌─ Target Layer ───────────────────────────────────────┐ │
 │ │  [ Auto-detect from selection                      ▼] │ │
 │ └──────────────────────────────────────────────────────┘ │
@@ -97,6 +104,8 @@ It operates as a **passive real-time monitor** during standard ArcGIS Pro workfl
 │ │  ☐ Vertex angles (between segments)                  │ │
 │ │  ☐ Vertex coordinates (X, Y)   [Decimals: 4 ▼]      │ │
 │ │  ☐ Area difference (before & after edit)             │ │
+│ │  ☐ Visible count HUD (on map)                        │ │
+│ │  ☐ Hidden dimensions warning                         │ │
 │ └──────────────────────────────────────────────────────┘ │
 │ ┌─ Measurement Method ─────────────────────────────────┐ │
 │ │  🔘 Automatic   ○ Planar   ○ Geodesic                │ │
@@ -118,6 +127,9 @@ It operates as a **passive real-time monitor** during standard ArcGIS Pro workfl
 └──────────────────────────────────────────────────────────┘
 ```
 
+> [!NOTE]
+> **Theme Adaptation**: The Settings DockPane UI dynamically adjusts its text elements based on ArcGIS Pro's theme — rendering high-contrast **Black text in Light Theme** and clean **White text in Dark Theme**.
+
 ---
 
 ## 5. Settings Reference | دليل وشرح الإعدادات
@@ -125,6 +137,9 @@ It operates as a **passive real-time monitor** during standard ArcGIS Pro workfl
 | Setting | Type | Default | Description | الوصف بالعربية |
 |---|---|---|---|---|
 | **Enable GeoMetrics** | CheckBox | `OFF` | Master switch controlling real-time dimension monitoring. | المفتاح الرئيسي لتشغيل أو إيقاف الأداة. |
+| **Multi-Feature Measurements** | CheckBox | `OFF` | Simultaneously measures and numbers all selected features. | قياس وترقيم جميع المعالم المحددة في وقت واحد. |
+| **Max Features Limit** | DropDown | `50` | Maximum number of selected features to measure (`10`, `25`, `50`, `100`, `200`). | الحد الأقصى لعدد المعالم المقاسة معاً لمنع بطء الأداء. |
+| **Place Dimensions Inside** | CheckBox | `OFF` | Inverts offset vectors to position segment labels inside polygon boundaries. | رسم أبعاد المضلعات للداخل لتفادي تداخل النصوص بين المعالم المتجاورة. |
 | **Target Layer** | DropDown | `Auto-detect` | Pins the tool to a specific layer, or auto-detects from the active selection. | حصر القياسات في طبقة محددة أو الاكتشاف التلقائي. |
 | **Apply to Service Layers** | CheckBox | `OFF` | Enables dimensions on remote ArcGIS Server / AGOL / Portal feature services. | السماح بالعمل على طبقات الويب والخدمات السحابية. |
 | **Segment Lengths** | CheckBox | `ON` | Displays measured lengths along boundary edges. | إظهار أطوال الأضلاع. |
@@ -134,12 +149,15 @@ It operates as a **passive real-time monitor** during standard ArcGIS Pro workfl
 | **Vertex Coordinates** | CheckBox | `OFF` | Displays live X and Y coordinates at each vertex point. | إظهار إحداثيات النقاط والأركان (X, Y) لحظياً. |
 | **Decimals (Coordinates)** | DropDown | `4` | Number of decimal digits for X, Y coordinates (0 to 8). | عدد الخانات العشرية المعروضة لإحداثيات X و Y. |
 | **Area Difference** | CheckBox | `OFF` | Displays polygon area before editing, during editing, and the net difference ($\Delta$). | إظهار ومقارنة مساحة المضلع قبل التعديل وأثناء التعديل وفارق التغير. |
+| **Visible Count HUD** | CheckBox | `OFF` | Displays a live on-screen counter of visible vertices and segments (top-left). | عداد حي لعدد النقاط والأضلاع الظاهرة على الشاشة (أعلى اليسار). |
+| **Hidden Warning** | CheckBox | `OFF` | Displays a warning overlay when dimensions are hidden due to zoom level (top-right). | تحذير عند إخفاء أبعاد بسبب مستوى التقريب (أعلى اليمين). |
 | **Measurement Method** | Radio | `Automatic` | `Automatic` (Geodesic for GCS, Planar for Projected), `Planar`, or `Geodesic`. | طريقة الحساب (تلقائي، مسقط، أو جيوديسي). |
 | **Display Units** | DropDown | `Meters` | `Meters`, `Feet`, `US Survey Feet`, `Kilometers`, `Miles`, `Layer Native`. | وحدة القياس والعرض لجميع الأبعاد. |
 | **Decimal Places** | Slider | `2` | Number of decimal digits for lengths and areas (0 to 4). | عدد الخانات العشرية لأطوال الأضلاع والمساحة. |
 | **Label Offset** | Slider | `14 px` | Distance in screen pixels to offset text from segment lines. | مسافة إزاحة النصوص عن الأضلاع بالبكسل. |
 | **Dimension Style** | DropDown | `Numbers_Only` | `Numbers_Only`, `CAD_Standard`, `Minimal`, `High_Contrast`. | نمط الإخراج الرسومي (أرقام فقط، نمط CAD، إلخ). |
-| **Text Color** | DropDown | `Black` | `Black`, `Blue`, `Red`, `Green`, `Orange`, `White`, `Yellow`, `Cyan`. | لون الخط المستخدم في كتابة الأبعاد. |
+| **Text Color** | DropDown | `Black` | `Black`, `Blue`, `Red`, `Green`, `Orange`, `White`, `Yellow`, `Cyan`. | لون الخط المستخدم في كتابة الأبعاد على الخريطة. |
+| **UI Theme Text Color** | Auto | `Adaptive` | Automatically switches UI text to **Black in Light Theme** and **White in Dark Theme**. | تكيّف لون نصوص الواجهة تلقائياً: **أسود** في النمط الفاتح و**أبيض** في الداكن. |
 
 ---
 
@@ -184,6 +202,15 @@ It operates as a **passive real-time monitor** during standard ArcGIS Pro workfl
    ```
 4. This gives real-time visibility into the exact area gained or lost during boundary adjustments.
 
+### 🔷 Workflow 5: Multi-Feature Measurements & Inside Dimensions (قياس معالم متعددة)
+1. Open the **GeoMetrics Settings** pane from the ribbon.
+2. In the **Selection & Multi-Feature** section:
+   - Check **Multi-feature measurements**.
+   - (Optional) Adjust **Max features** (e.g. `50` or `100`).
+   - (Optional) Check **Place dimensions inside boundary** to draw segment labels inside polygons, preventing overlaps between neighboring parcels.
+3. Use the ArcGIS Pro **Select** tool to select multiple polygons or polylines (or draw a selection rectangle).
+4. All selected features will be dimensioned simultaneously, with distinct feature index badges (`#1`, `#2`, etc.) and area labels.
+
 ---
 
 ## 7. Coordinate Systems & Geodesy | أنظمة الإحداثيات والقياس الجيوديسي
@@ -210,8 +237,9 @@ GeoMetrics accurately follows ArcGIS Pro's standard measurement engine:
 - **Check 2**: If the layer is a web service (FeatureServer / MapServer), check **Apply to Service Layers** in the Settings dockpane.
 - **Check 3**: Ensure the layer is a Polygon or Polyline layer. Point layers are not dimensioned.
 
-### Q3: How do I change the text color for Dark or Light theme?
-- Open **GeoMetrics Settings** $\rightarrow$ **Precision & Appearance** $\rightarrow$ choose **Text Color** (e.g., `White`, `Yellow`, or `Cyan` for dark backgrounds, or `Black` / `Dark Blue` for light basemaps).
+### Q3: How does text color behave in ArcGIS Pro Light and Dark themes?
+- **Settings DockPane UI Text**: Automatically adapts to your active ArcGIS Pro theme. In **Light Theme**, all UI labels and control text render in crisp **Black** (`#000000`). In **Dark Theme**, all UI text renders in **White** (`#FFFFFF`) with native contrast. No manual action is needed.
+- **Map Overlay Text**: Customizable via **GeoMetrics Settings** $\rightarrow$ **Precision & Appearance** $\rightarrow$ **Text Color** (e.g. choose `Black` or `Dark Blue` for light basemaps, or `White`, `Yellow`, or `Cyan` for dark satellite/imagery basemaps).
 
 ### Q4: Does GeoMetrics modify my feature class data or attribute tables?
 - **No**. GeoMetrics is strictly an overlay visualization tool. It utilizes temporary `MapView.AddOverlay` CIM graphics stored in ephemeral graphics memory and never modifies your shapefiles, enterprise geodatabases, or attribute tables.

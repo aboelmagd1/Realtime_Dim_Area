@@ -32,6 +32,9 @@ It operates passively on top of ArcGIS Pro's native **Edit → Modify** workflow
   - Automatically identifies remote service-backed layers (FeatureServer, MapServer, Hosted Feature Layers, ArcGIS Online / Enterprise Portal services, WFS, WMS).
   - Distinguishes local data sources (File Geodatabase `.gdb`, Mobile Geodatabase `.geodatabase`, Shapefiles, direct Enterprise SDE).
   - **Apply to Service Layers** toggle (Default: *OFF*). If a service layer is selected while disabled, an informative notification is displayed without error.
+- **Theme-Aware UI (Light & Dark Themes)**: Fully integrated with ArcGIS Pro's theme engine. In **Light Theme**, all UI text automatically displays in **crisp black** for optimal contrast. In **Dark Theme**, text remains in **bright white** and off-white.
+- **Multi-Feature Measurements**: Measure and annotate all selected features simultaneously with configurable limits (10 to 200 features) and inside-polygon placement to prevent label collisions.
+- **Viewport HUD & Warnings**: Live counter HUD for visible vertices and segments, plus high-zoom hidden dimensions indicators.
 - **Default Configuration**:
   - Default Display Unit: **Meter (`m` / `m²`)**.
   - Default Style: **Numbers_Only** (displays clean `NUMBER + UNIT` such as `35.42 m` and `1250.52 m²` without redundant word prefixes like `Length:` or `Area:`).
@@ -71,6 +74,7 @@ GeoMetrics/
 │   ├── ShowSettingsButton.cs            # Ribbon button to activate Settings Dock Pane
 │   ├── DimensionSettingsPaneViewModel.cs# Dock Pane ViewModel & reactive layer collection
 │   ├── DimensionSettingsPaneView.xaml   # Settings UI WPF layout
+│   ├── DimensionSettingsPaneView.xaml.cs# Theme-aware styling (Light/Dark text color synchronization)
 │   └── EnumEqualsConverter.cs           # WPF RadioButton enum binding converter
 │
 └── Utilities/
@@ -86,6 +90,9 @@ GeoMetrics/
 |---|---|---|---|
 | **GeoMetrics** | Toggle | `OFF` | Master ON/OFF switch. Synchronized across Ribbon and Dock Pane. |
 | **Target Layer** | Dropdown | `Auto-detect` | Pins the tool to a specific layer or auto-detects from selection. |
+| **Multi-Feature Measurements** | CheckBox | `OFF` | Measures and annotates all selected features simultaneously. |
+| **Max Features Limit** | Dropdown | `50` | Maximum number of features measured at once (`10`, `25`, `50`, `100`, `200`). |
+| **Place Dimensions Inside** | CheckBox | `OFF` | Draws dimensions inside polygon boundaries to prevent overlaps. |
 | **Apply to Service Layers** | CheckBox | `OFF` | Allows dimensions on remote Feature Services / Map Services. |
 | **Segment Lengths** | CheckBox | `ON` | Displays dimensions along each segment. |
 | **Polygon Area** | CheckBox | `ON` | Displays total area in interior label position (`m²`, `ft²`, etc.). |
@@ -93,11 +100,15 @@ GeoMetrics/
 | **Vertex Angles** | CheckBox | `OFF` | Displays corner angles between segments (filters out angles $\approx 180^\circ$). |
 | **Vertex Coordinates** | CheckBox | `OFF` | Displays X and Y coordinates at each vertex in real-time (with Decimals selector 0-8). |
 | **Area Difference** | CheckBox | `OFF` | Displays polygon area before editing, during editing, and net change ($\Delta$). |
+| **Visible Count HUD** | CheckBox | `OFF` | Displays real-time visible vertex and segment counts at viewport top-left. |
+| **Hidden Warning** | CheckBox | `OFF` | Displays warning when short segments are hidden at current zoom level. |
 | **Measurement Method** | Radio | `Automatic` | Automatic (Geodesic for geographic CRS, Planar for projected CRS), Planar, Geodesic. |
 | **Display Units** | Dropdown | `Meters` | Meters, Feet, US Survey Feet, Kilometers, Miles, Layer Native CRS. |
 | **Dimension Style** | Dropdown | `Numbers_Only` | `Numbers_Only`, `CAD_Standard`, `Minimal`, `High_Contrast`. |
+| **Text Color** | Dropdown | `Black` | Text color on map overlay (`Black`, `Blue`, `Red`, `Green`, `Orange`, `White`, etc.). |
 | **Decimal Places** | Slider | `2` | Number of decimal places (0 to 4). |
 | **Label Offset** | Slider | `14 px` | Perpendicular offset distance from segments. |
+| **UI Theme Text Color** | Auto | `Adaptive` | UI controls automatically use **Black text** in Light Theme and **White text** in Dark Theme. |
 
 ---
 
@@ -170,7 +181,16 @@ Addin_Package\GeoMetrics.esriAddinX
    - خيار "تطبيق على طبقات الخدمات" (`Apply to Service Layers`) معطل افتراضياً (`OFF`).
    - إشعار توضيحي غير مزعج للمستخدم عند اختيار طبقة خدمة بدون إظهار أخطاء.
 
-7. **الإعدادات الافتراضية القياسية**:
+7. **التوافق الكامل مع السمات (Light & Dark Themes)**:
+   - تكامل ذكي مع مظهر ArcGIS Pro؛ تتحول جميع نصوص لوحة الإعدادات وعناصر التحكم تلقائياً إلى **اللون الأسود الداكن** في السمة الفاتحة (Light Theme) لضمان أعلى وضوح ومقروءية، وتظل **باللون الأبيض الناصع** في السمة الداكنة (Dark Theme).
+
+8. **القياس المتعدد للمعالم (Multi-Feature Measurements)**:
+   - دعم قياس وترقيم عدة معالم محددة في وقت واحد مع تحديد حد أقصى (10 إلى 200 معلم)، وخيار وضع الأبعاد داخل حدود المضلعات لتجنب تداخل النصوص بين المعالم المتجاورة.
+
+9. **شاشات المعلومات والتحذيرات (HUD & Warnings)**:
+   - عداد مباشر لعدد النقاط والأضلاع الظاهرة على الشاشة (HUD)، مع مؤشر تحذيري للأبعاد المخفية بسبب مستوى التقريب (Zoom).
+
+10. **الإعدادات الافتراضية القياسية**:
    - الوحدة الافتراضية: **المتر (`Meter`)**.
    - النمط الافتراضي: **Numbers_Only** (يعرض الرقم + الوحدة مثل `35.42 m` و `1250.52 m²` بدون كلمات وصفية مثل `Length:` أو `Area:`).
 
@@ -209,6 +229,7 @@ GeoMetrics/
 │   ├── ShowSettingsButton.cs            # زر فتح لوحة الإعدادات
 │   ├── DimensionSettingsPaneViewModel.cs# ViewModel للوحة الإعدادات وقائمة الطبقات
 │   ├── DimensionSettingsPaneView.xaml   # واجهة WPF للوحة الإعدادات
+│   ├── DimensionSettingsPaneView.xaml.cs# المواءمة التلقائية للسمات الداكنة والفاتحة وألوان النصوص
 │   └── EnumEqualsConverter.cs           # محول ربط الـ RadioButtons مع الـ Enums
 │
 └── Utilities/
@@ -224,18 +245,25 @@ GeoMetrics/
 |---|---|---|---|
 | **GeoMetrics** | تبديل | `OFF` | المفتاح الرئيسي لتشغيل/إيقاف الأداة ومزامنته مع الشريط العلوي. |
 | **Target Layer** | قائمة | `تلقائي` | تحديد طبقة معينة أو الاكتشاف التلقائي من التحديد الحالي. |
+| **Multi-Feature Selection** | اختيار | `OFF` | قياس وترقيم جميع المعالم المحددة في وقت واحد. |
+| **Max Features Limit** | قائمة | `50` | الحد الأقصى للمعالم المقاسة معاً (`10`, `25`, `50`, `100`, `200`). |
+| **Polygon Dimensions Inside** | اختيار | `OFF` | رسم أبعاد المضلعات للداخل لتفادي تداخل النصوص بين القطع المتجاورة. |
 | **Apply to Service Layers** | اختيار | `OFF` | السماح للأداة بالعمل على طبقات الـ Feature Service و Map Service. |
 | **Segment Lengths** | اختيار | `ON` | إظهار أطوال الأضلاع. |
 | **Polygon Area** | اختيار | `ON` | إظهار مساحة المضلع (`m²`, `ft²`, إلخ). |
 | **Perimeter** | اختيار | `OFF` | إظهار المحيط الكلي للمضلع (`m`, `ft`, إلخ). |
 | **Vertex Angles** | اختيار | `OFF` | إظهار الزوايا بين الأضلاع (مع استبعاد الزوايا $\approx 180^\circ$). |
-| **Vertex Coordinates** | اختيار | `OFF` | إظهار إحداثيات النقاط والأركان (X, Y) بشكل لحظي مع تحديد الخانات العشرية. |
+| **Vertex Coordinates** | اختيار | `OFF` | إظهار إحداثيات النقاط والأركان (X, Y) بشكل لحظي مع تحديد الخانات العشرية (0-8). |
 | **Area Difference** | اختيار | `OFF` | إظهار ومقارنة مساحة المضلع قبل التعديل وأثناء التعديل وفارق التغير ($\Delta$). |
+| **Visible Count HUD** | اختيار | `OFF` | عرض عداد لحظي للنقاط والأضلاع المرئية في أعلى يسار الشاشة. |
+| **Hidden Warning** | اختيار | `OFF` | إظهار تحذير في أعلى يمين الشاشة عند إخفاء أبعاد لصغر طولها بالنسبة للتقريب. |
 | **Measurement Method** | خيارات | `Automatic` | تلقائي (جيوديسي للجغرافي، مسقط للمسقط)، مسقط، أو جيوديسي. |
 | **Display Units** | قائمة | `Meters` | أمتار، أقدام، أقدام مساحية، كيلومترات، أميال، أو وحدات الطبقة. |
 | **Dimension Style** | قائمة | `Numbers_Only` | نمط الأرقام فقط، نمط CAD القياسي، نمط مبسط، أو عالي التباين. |
+| **Text Color** | قائمة | `Black` | لون نصوص الأبعاد على الخريطة (أسود، أزرق، أحمر، أخضر، برتقالي، أبيض، إلخ). |
 | **Decimal Places** | شريط | `2` | عدد الخانات العشرية المعروضة (0 إلى 4). |
 | **Label Offset** | شريط | `14 px` | مسافة إزاحة النص عن الضلع بالبكسل. |
+| **UI Theme Text Color** | تلقائي | `Adaptive` | تلوين نصوص الواجهة تلقائياً: **أسود** في النمط الفاتح و**أبيض** في النمط الداكن. |
 
 ---
 

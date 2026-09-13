@@ -101,6 +101,23 @@ The tool operates as a **passive real-time overlay** over ArcGIS Pro's native **
   - `High_Contrast`: High contrast cyan lines with black/white halos.
 - **Colors**: Black, Blue, Red, Green, Orange, White, Yellow, Cyan. Text symbols must include a matching high-contrast halo (2.2 pt) so text is readable over any basemap.
 
+### G. Multi-Feature Measurements & Decluttering
+- **Multi-Feature Support**: Allows measuring all selected features simultaneously when `MultiFeatureEnabled == true`.
+- **Feature Limit Guard**: Configurable limit (`MaxFeaturesCount`, default `50`, range `10`–`200`) to prevent performance drops with large selection sets.
+- **Inside Placement (`PlaceDimensionsInside`)**: Inverts segment offset normal vectors to keep label annotations strictly inside polygon boundaries, preventing text collisions between adjacent lots/parcels.
+- **Viewport Decluttering & HUD**:
+  - Segment and angle labels are dynamically culled if edge length in screen pixels falls below readability thresholds.
+  - Optional `ShowVisibleCountHud`: Displays live on-screen overlay of visible vertices and segments count.
+  - Optional `ShowHiddenWarning`: Displays warning when items are suppressed due to map zoom level.
+
+### H. Dynamic UI Theme Adaptation (Light & Dark Themes)
+- **Contrast Requirement**:
+  - **Light Theme**: All text in the Settings DockPane and dialogs must render in crisp **Black** (`#000000`) for complete readability against light backgrounds.
+  - **Dark Theme**: Text renders in native **White** (`#FFFFFF` / `#DCDCDC`) with native dark contrast.
+- **Architectural Implementation**:
+  - `DimensionSettingsPaneView.xaml`: Defines implicit styles for `GroupBox`, `CheckBox`, `RadioButton`, and `TextBlock` bound to `Esri_TextPrimaryBrush` / `Esri_TextSecondaryBrush`.
+  - `DimensionSettingsPaneView.xaml.cs`: Queries `FrameworkApplication.ApplicationTheme`. If `Default` (Light Theme), swaps dynamic brush resources to pure black solid color brushes. Hooked into `Loaded` and `IsVisibleChanged` lifecycle events to maintain high contrast dynamically.
+
 ---
 
 ## 5. File Layout & Code Blueprint
@@ -136,6 +153,7 @@ GeoMetrics/
 │   ├── ShowSettingsButton.cs            # Ribbon button to open Dimension Settings DockPane
 │   ├── DimensionSettingsPaneViewModel.cs# DockPane ViewModel (reactive layer dropdown & settings bindings)
 │   ├── DimensionSettingsPaneView.xaml   # WPF Settings Pane UI layout
+│   ├── DimensionSettingsPaneView.xaml.cs# Theme color management & dynamic text contrast logic
 │   └── EnumEqualsConverter.cs           # IValueConverter for enum radio button bindings
 │
 └── Utilities/
@@ -160,6 +178,11 @@ ShowVertexCoordinates= false;                             // Vertex Coordinates:
 ShowBearings         = false;                             // Bearings: OFF
 ShowAreaDifference   = false;                             // QC Area Difference: OFF
 ShowToleranceStatus  = false;                             // QC Tolerance: OFF
+MultiFeatureEnabled  = false;                             // Multi-Feature: OFF
+MaxFeaturesCount     = 50;                                // Max Features: 50
+PlaceDimensionsInside= false;                             // Place Inside: OFF
+ShowVisibleCountHud  = false;                             // Visible HUD: OFF
+ShowHiddenWarning    = false;                             // Hidden Warning: OFF
 Method               = MeasurementMethod.Automatic;       // Method: Automatic
 Precision            = 2;                                 // Decimal Places: 2
 OffsetPixels         = 14.0;                              // Label Offset: 14 px
