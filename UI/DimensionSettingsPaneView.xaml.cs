@@ -12,6 +12,7 @@ namespace GeoMetrics.UI
             InitializeComponent();
             ApplyThemeColors();
             Loaded += (s, e) => ApplyThemeColors();
+            IsVisibleChanged += (s, e) => { if (IsVisible) ApplyThemeColors(); };
         }
 
         private void ApplyThemeColors()
@@ -51,9 +52,6 @@ namespace GeoMetrics.UI
                     var blackBrush = new SolidColorBrush(Colors.Black);
                     blackBrush.Freeze();
 
-                    var darkGrayBrush = new SolidColorBrush(Color.FromRgb(85, 85, 85));
-                    darkGrayBrush.Freeze();
-
                     var lightBgBrush = new SolidColorBrush(Colors.White);
                     lightBgBrush.Freeze();
 
@@ -64,7 +62,7 @@ namespace GeoMetrics.UI
                     lightBorderBrush.Freeze();
 
                     Resources["Esri_TextPrimaryBrush"] = blackBrush;
-                    Resources["Esri_TextSecondaryBrush"] = darkGrayBrush;
+                    Resources["Esri_TextSecondaryBrush"] = blackBrush;
                     Resources["DropdownTextBrush"] = blackBrush;
                     Resources["DropdownBackgroundBrush"] = lightBgBrush;
                     Resources["DropdownHighlightBrush"] = lightHoverBrush;

@@ -16,7 +16,7 @@
 
         <!-- High-contrast text brushes: Black in Light Mode, dynamically flipped to White in Dark Mode -->
         <SolidColorBrush x:Key="Esri_TextPrimaryBrush" Color="#000000"/>
-        <SolidColorBrush x:Key="Esri_TextSecondaryBrush" Color="#555555"/>
+        <SolidColorBrush x:Key="Esri_TextSecondaryBrush" Color="#000000"/>
 
         <!-- Dedicated Dropdown Theme Brushes (Black in Light Mode, White in Dark Mode) -->
         <SolidColorBrush x:Key="DropdownTextBrush" Color="#000000"/>
@@ -166,6 +166,25 @@
             <Setter Property="TextElement.Foreground" Value="{DynamicResource DropdownTextBrush}"/>
             <Setter Property="Background" Value="{DynamicResource DropdownBackgroundBrush}"/>
             <Setter Property="Padding" Value="6,4"/>
+        </Style>
+
+        <Style TargetType="GroupBox">
+            <Setter Property="Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
+        </Style>
+
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
+        </Style>
+
+        <Style TargetType="RadioButton">
+            <Setter Property="Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
+        </Style>
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Esri_TextPrimaryBrush}"/>
         </Style>
 
         <Style TargetType="Slider">
