@@ -28,8 +28,8 @@
                 className="UI.DimensionToggleButton"
                 loadOnClick="false"
                 keytip="D"
-                smallImage="Images\GenericButtonRed16.png"
-                largeImage="Images\GenericButtonRed32.png">
+                smallImage="Images\GeoMetricsToggle_OFF_16.png"
+                largeImage="Images\GeoMetricsToggle_OFF_32.png">
           <tooltip heading="GeoMetrics (ON / OFF)">
             Toggle real-time geometry measurements ON or OFF.
             When ON: segment lengths and area update live during editing and selection.
@@ -44,8 +44,8 @@
                 className="UI.ShowSettingsButton"
                 loadOnClick="true"
                 keytip="S"
-                smallImage="Images\GenericButtonBlue16.png"
-                largeImage="Images\GenericButtonBlue32.png">
+                smallImage="Images\GeoMetricsSettings_16.png"
+                largeImage="Images\GeoMetricsSettings_32.png">
           <tooltip heading="GeoMetrics Settings">
             Open the GeoMetrics settings pane
             (units, method, display options, precision).

@@ -23,19 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="Images\AddinDesktop32.png" Condition="Exists('Images\AddinDesktop32.png')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Images\GenericButtonRed16.png" Condition="Exists('Images\GenericButtonRed16.png')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Images\GenericButtonRed32.png" Condition="Exists('Images\GenericButtonRed32.png')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Images\GenericButtonBlue16.png" Condition="Exists('Images\GenericButtonBlue16.png')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Include="Images\GenericButtonBlue32.png" Condition="Exists('Images\GenericButtonBlue32.png')">
+    <Resource Include="Images\*.png" />
+    <None Include="Images\*.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
