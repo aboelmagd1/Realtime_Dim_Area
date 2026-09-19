@@ -71,6 +71,7 @@
     <Delete Files="$(AddInPackageFile)" Condition="Exists('$(AddInPackageFile)')" />
     <ZipDirectory SourceDirectory="$(StagingDir)" DestinationFile="$(AddInPackageFile)" Overwrite="true" />
     <Copy SourceFiles="$(AddInPackageFile)" DestinationFolder="$(ProjectDir)bin" Condition="Exists('$(AddInPackageFile)')" />
+    <Copy SourceFiles="$(AddInPackageFile)" DestinationFolder="$(ProjectDir)Addin_Package" Condition="Exists('$(AddInPackageFile)')" />
     <Message Text="Successfully generated ArcGIS Pro Add-in package: $(AddInPackageFile)" Importance="high" />
   </Target>
 

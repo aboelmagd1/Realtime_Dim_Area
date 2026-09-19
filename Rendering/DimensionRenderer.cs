@@ -238,12 +238,26 @@ namespace GeoMetrics.Rendering
             var (nx, ny)  = DimensionLabelManager.GetOutwardNormal(a, b);
             double offsetMeters = Math.Max(6.0, settings.OffsetPixels) * mpp;
 
-            // ── Style: Numbers Only (Clean Text, No Dimension Lines) ───────────────
-            if (settings.DimensionStyle == DimensionStyleOption.Numbers_Only)
+            // ── Style: Numbers Only (Clean Text, No Dimension Lines) or Curve Segments ─
+            if (settings.DimensionStyle == DimensionStyleOption.Numbers_Only || seg.IsCurve)
             {
-                // Place text neatly offset from the segment midpoint
-                var midOffset = DimensionLabelManager.GetOffsetMidpoint(a, b, offsetMeters);
-                double angleDeg = DimensionLabelManager.GetLabelAngle(a, b);
+                MapPoint midOffset;
+                double angleDeg;
+
+                if (seg.IsCurve && seg.MidPoint != null)
+                {
+                    angleDeg = seg.TangentAngle ?? DimensionLabelManager.GetLabelAngle(a, b);
+                    double rad = (angleDeg * Math.PI) / 180.0;
+                    double nxCurve = -Math.Sin(rad);
+                    double nyCurve = Math.Cos(rad);
+                    var (dx, dy) = DimensionLabelManager.MetersToMapDelta(nxCurve * offsetMeters, nyCurve * offsetMeters, seg.MidPoint.SpatialReference, seg.MidPoint.Y);
+                    midOffset = MapPointBuilderEx.CreateMapPoint(seg.MidPoint.X + dx, seg.MidPoint.Y + dy, seg.MidPoint.SpatialReference);
+                }
+                else
+                {
+                    midOffset = DimensionLabelManager.GetOffsetMidpoint(a, b, offsetMeters);
+                    angleDeg = DimensionLabelManager.GetLabelAngle(a, b);
+                }
 
                 string text = UnitConverter.FormatLength(
                     seg.DisplayLength, settings.Precision, seg.UnitAbbrev);

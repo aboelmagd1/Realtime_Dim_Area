@@ -160,13 +160,15 @@ namespace GeoMetrics.Rendering
                         Value = seg.DisplayLength,
                         StartPoint = seg.Start,
                         EndPoint = seg.End,
-                        AnchorPoint = DimensionLabelManager.GetOffsetMidpoint(seg.Start, seg.End, 0),
-                        Angle = DimensionLabelManager.GetLabelAngle(seg.Start, seg.End),
+                        AnchorPoint = seg.MidPoint ?? DimensionLabelManager.GetOffsetMidpoint(seg.Start, seg.End, 0),
+                        Angle = seg.TangentAngle ?? DimensionLabelManager.GetLabelAngle(seg.Start, seg.End),
                         IsVisible = settings.ShowSegmentLength,
                         Bearing = seg.Bearing,
                         UnitAbbrev = seg.UnitAbbrev,
                         SegmentIndex = i,
-                        SourcePolygon = result.SourcePolygon
+                        SourcePolygon = result.SourcePolygon,
+                        IsCurve = seg.IsCurve,
+                        CentralAngle = seg.CentralAngle
                     });
                 }
             }
@@ -306,12 +308,14 @@ namespace GeoMetrics.Rendering
                         Value = seg.DisplayLength,
                         StartPoint = seg.Start,
                         EndPoint = seg.End,
-                        AnchorPoint = DimensionLabelManager.GetOffsetMidpoint(seg.Start, seg.End, 0),
-                        Angle = DimensionLabelManager.GetLabelAngle(seg.Start, seg.End),
+                        AnchorPoint = seg.MidPoint ?? DimensionLabelManager.GetOffsetMidpoint(seg.Start, seg.End, 0),
+                        Angle = seg.TangentAngle ?? DimensionLabelManager.GetLabelAngle(seg.Start, seg.End),
                         IsVisible = settings.ShowSegmentLength,
                         Bearing = seg.Bearing,
                         UnitAbbrev = seg.UnitAbbrev,
-                        SegmentIndex = i
+                        SegmentIndex = i,
+                        IsCurve = seg.IsCurve,
+                        CentralAngle = seg.CentralAngle
                     });
                 }
             }
@@ -490,15 +494,37 @@ namespace GeoMetrics.Rendering
                         bool isPolygon = poly != null || _cachedMeasurements.GeometryType == GeometryType.Polygon;
                         bool placeInside = settings.MultiFeatureEnabled && settings.MultiFeaturePolygonInside && isPolygon;
 
-                        double angleDeg = DimensionLabelManager.GetLabelAngle(a, b);
+                        double angleDeg = segItem.IsCurve
+                            ? segItem.Angle
+                            : DimensionLabelManager.GetLabelAngle(a, b);
+
                         var (nx, ny) = placeInside
                             ? DimensionLabelManager.GetInwardNormal(a, b, poly, mpp)
                             : DimensionLabelManager.GetOutwardNormal(a, b);
 
                         double offsetMeters = baseOffsetMeters;
 
-                        // Dynamic anchor: if zoomed in, places label at the midpoint of the VISIBLE piece of the segment
-                        var dynamicSegAnchor = DimensionLabelManager.GetDynamicSegmentAnchor(_mapView, a, b, offsetMeters, nx, ny);
+                        // Dynamic anchor: for curves, offset from true curve midpoint along normal;
+                        // for straight segments, use dynamic visible viewport anchor
+                        MapPoint dynamicSegAnchor;
+                        if (segItem.IsCurve && segItem.AnchorPoint != null)
+                        {
+                            var midPt = segItem.AnchorPoint;
+                            double rad = (angleDeg * Math.PI) / 180.0;
+                            double nxCurve = -Math.Sin(rad);
+                            double nyCurve = Math.Cos(rad);
+                            if (placeInside)
+                            {
+                                nxCurve = -nxCurve;
+                                nyCurve = -nyCurve;
+                            }
+                            var (dx, dy) = DimensionLabelManager.MetersToMapDelta(nxCurve * offsetMeters, nyCurve * offsetMeters, midPt.SpatialReference, midPt.Y);
+                            dynamicSegAnchor = MapPointBuilderEx.CreateMapPoint(midPt.X + dx, midPt.Y + dy, midPt.SpatialReference);
+                        }
+                        else
+                        {
+                            dynamicSegAnchor = DimensionLabelManager.GetDynamicSegmentAnchor(_mapView, a, b, offsetMeters, nx, ny);
+                        }
 
                         // Format text based on style (Numbers_Only shows NUMBER + UNIT)
                         string segText = UnitConverter.FormatLength(segItem.Value, settings.Precision, segItem.UnitAbbrev);
@@ -507,7 +533,7 @@ namespace GeoMetrics.Rendering
                             segText += $"  ({UnitConverter.FormatBearing(segItem.Bearing.Value)})";
 
                         // Render based on style
-                        if (settings.DimensionStyle == DimensionStyleOption.Numbers_Only)
+                        if (settings.DimensionStyle == DimensionStyleOption.Numbers_Only || segItem.IsCurve)
                         {
                             PlaceText(dynamicSegAnchor, segText, angleDeg, DimensionItemRole.Segment, textColor, haloColor);
                         }

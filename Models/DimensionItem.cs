@@ -46,5 +46,9 @@ namespace GeoMetrics.Models
         public Polygon SourcePolygon { get; set; }
 
         public long FeatureId { get; set; }
+
+        public bool IsCurve { get; set; }
+
+        public double? CentralAngle { get; set; }
     }
 }

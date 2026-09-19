@@ -29,10 +29,30 @@ namespace GeoMetrics.Measurement
         /// <summary>Bearing in degrees 0–360 clockwise from north. Null when not requested.</summary>
         public double? Bearing { get; }
 
+        /// <summary>True if this segment is a curve (e.g. Arc, Elliptic Arc, Cubic Bezier).</summary>
+        public bool IsCurve { get; }
+
+        /// <summary>True geometric midpoint along the segment curve path.</summary>
+        public MapPoint MidPoint { get; }
+
+        /// <summary>Tangent orientation angle in degrees (-90 to +90) at the segment midpoint for readable label orientation.</summary>
+        public double? TangentAngle { get; }
+
+        /// <summary>Central / sweep angle in degrees for circular or elliptic arcs. Null for straight lines or beziers.</summary>
+        public double? CentralAngle { get; }
+
+        /// <summary>Underlying segment geometry type (Line, EllipticArc, Bezier, etc.).</summary>
+        public SegmentType SegmentType { get; }
+
         public SegmentMeasurement(
             MapPoint start, MapPoint end,
             double nativeLength, double displayLength, string unitAbbrev,
-            double? bearing = null)
+            double? bearing = null,
+            bool isCurve = false,
+            MapPoint midPoint = null,
+            double? tangentAngle = null,
+            double? centralAngle = null,
+            SegmentType segmentType = SegmentType.Line)
         {
             Start         = start;
             End           = end;
@@ -40,6 +60,11 @@ namespace GeoMetrics.Measurement
             DisplayLength = displayLength;
             UnitAbbrev    = unitAbbrev;
             Bearing       = bearing;
+            IsCurve       = isCurve;
+            MidPoint      = midPoint;
+            TangentAngle  = tangentAngle;
+            CentralAngle  = centralAngle;
+            SegmentType   = segmentType;
         }
     }
 }

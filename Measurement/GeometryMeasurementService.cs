@@ -233,61 +233,56 @@ namespace GeoMetrics.Measurement
 
             foreach (var part in parts)
             {
-                var pts = new List<MapPoint>(part.Count + 1);
-                foreach (var seg in part)
-                {
-                    var sp = seg.StartPoint;
-                    if (sp.SpatialReference == null && sr != null)
-                        sp = MapPointBuilderEx.CreateMapPoint(sp.X, sp.Y, sr);
-                    pts.Add(sp);
-                }
-                if (part.Count > 0)
-                {
-                    var ep = part[part.Count - 1].EndPoint;
-                    if (ep.SpatialReference == null && sr != null)
-                        ep = MapPointBuilderEx.CreateMapPoint(ep.X, ep.Y, sr);
-                    pts.Add(ep);
-                }
+                if (part == null || part.Count == 0) continue;
 
-                if (pts.Count < 3) continue;
+                int n = part.Count;
 
                 if (isPolygon)
                 {
-                    int k = pts.Count;
-                    // If polygon ring is closed (first pt == last pt), remove redundant last pt
-                    if (Math.Abs(pts[0].X - pts[k - 1].X) < 1e-7 && Math.Abs(pts[0].Y - pts[k - 1].Y) < 1e-7)
+                    if (n < 3) continue;
+
+                    for (int i = 0; i < n; i++)
                     {
-                        k--;
-                    }
+                        var segPrev = part[(i - 1 + n) % n];
+                        var segNext = part[i];
+                        if (segPrev == null || segNext == null) continue;
 
-                    if (k < 3) continue;
+                        var v = segNext.StartPoint ?? segPrev.EndPoint;
+                        if (v == null) continue;
+                        if (v.SpatialReference == null && sr != null)
+                            v = MapPointBuilderEx.CreateMapPoint(v.X, v.Y, sr);
 
-                    for (int i = 0; i < k; i++)
-                    {
-                        var a = pts[(i - 1 + k) % k];
-                        var v = pts[i];
-                        var b = pts[(i + 1) % k];
+                        var (dx1, dy1, prevPt) = GetIncomingTangentVector(segPrev, v, sr);
+                        var (dx2, dy2, nextPt) = GetOutgoingTangentVector(segNext, v, sr);
 
-                        double? angle = CalculateAngle(a, v, b, sr);
+                        double? angle = CalculateAngleFromVectors(dx1, dy1, dx2, dy2, v, sr);
                         if (angle.HasValue)
                         {
-                            angles.Add(new VertexAngleMeasurement(v, angle.Value, a, b));
+                            angles.Add(new VertexAngleMeasurement(v, angle.Value, prevPt, nextPt));
                         }
                     }
                 }
                 else
                 {
-                    // Polyline: interior vertices only
-                    for (int i = 1; i < pts.Count - 1; i++)
+                    // Polyline: interior vertices only between consecutive segments
+                    for (int i = 1; i < n; i++)
                     {
-                        var a = pts[i - 1];
-                        var v = pts[i];
-                        var b = pts[i + 1];
+                        var segPrev = part[i - 1];
+                        var segNext = part[i];
+                        if (segPrev == null || segNext == null) continue;
 
-                        double? angle = CalculateAngle(a, v, b, sr);
+                        var v = segNext.StartPoint ?? segPrev.EndPoint;
+                        if (v == null) continue;
+                        if (v.SpatialReference == null && sr != null)
+                            v = MapPointBuilderEx.CreateMapPoint(v.X, v.Y, sr);
+
+                        var (dx1, dy1, prevPt) = GetIncomingTangentVector(segPrev, v, sr);
+                        var (dx2, dy2, nextPt) = GetOutgoingTangentVector(segNext, v, sr);
+
+                        double? angle = CalculateAngleFromVectors(dx1, dy1, dx2, dy2, v, sr);
                         if (angle.HasValue)
                         {
-                            angles.Add(new VertexAngleMeasurement(v, angle.Value, a, b));
+                            angles.Add(new VertexAngleMeasurement(v, angle.Value, prevPt, nextPt));
                         }
                     }
                 }
@@ -296,15 +291,79 @@ namespace GeoMetrics.Measurement
             return angles;
         }
 
-        private static double? CalculateAngle(MapPoint a, MapPoint v, MapPoint b, SpatialReference sr)
+        private static (double dx, double dy, MapPoint refPt) GetIncomingTangentVector(Segment seg, MapPoint v, SpatialReference sr)
         {
-            if (a == null || v == null || b == null) return null;
+            var vSr = v.SpatialReference ?? sr;
+            if (seg.IsCurve)
+            {
+                try
+                {
+                    // Query tangent at end of incoming segment (t = 1.0)
+                    var tangent = GeometryEngine.Instance.QueryTangent(seg, SegmentExtensionType.NoExtension, 1.0, AsRatioOrLength.AsRatio, 10.0);
+                    if (tangent != null)
+                    {
+                        // Vector pointing backwards from v into the curve
+                        double dx = tangent.StartPoint.X - tangent.EndPoint.X;
+                        double dy = tangent.StartPoint.Y - tangent.EndPoint.Y;
+                        double len = Math.Sqrt(dx * dx + dy * dy);
+                        if (len > 1e-9)
+                        {
+                            var pt = MapPointBuilderEx.CreateMapPoint(v.X + (dx / len), v.Y + (dy / len), vSr);
+                            return (dx, dy, pt);
+                        }
+                    }
+                }
+                catch { }
+            }
 
-            double dx1 = a.X - v.X, dy1 = a.Y - v.Y;
-            double dx2 = b.X - v.X, dy2 = b.Y - v.Y;
+            // Fallback to straight vector from v to seg.StartPoint
+            var sp = seg.StartPoint;
+            double fdx = (sp != null ? sp.X : v.X) - v.X;
+            double fdy = (sp != null ? sp.Y : v.Y) - v.Y;
+            var refP = sp != null ? (sp.SpatialReference == null && vSr != null ? MapPointBuilderEx.CreateMapPoint(sp.X, sp.Y, vSr) : sp) : v;
+            return (fdx, fdy, refP);
+        }
+
+        private static (double dx, double dy, MapPoint refPt) GetOutgoingTangentVector(Segment seg, MapPoint v, SpatialReference sr)
+        {
+            var vSr = v.SpatialReference ?? sr;
+            if (seg.IsCurve)
+            {
+                try
+                {
+                    // Query tangent at start of outgoing segment (t = 0.0)
+                    var tangent = GeometryEngine.Instance.QueryTangent(seg, SegmentExtensionType.NoExtension, 0.0, AsRatioOrLength.AsRatio, 10.0);
+                    if (tangent != null)
+                    {
+                        // Vector pointing forwards from v along the curve
+                        double dx = tangent.EndPoint.X - tangent.StartPoint.X;
+                        double dy = tangent.EndPoint.Y - tangent.StartPoint.Y;
+                        double len = Math.Sqrt(dx * dx + dy * dy);
+                        if (len > 1e-9)
+                        {
+                            var pt = MapPointBuilderEx.CreateMapPoint(v.X + (dx / len), v.Y + (dy / len), vSr);
+                            return (dx, dy, pt);
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            // Fallback to straight vector from v to seg.EndPoint
+            var ep = seg.EndPoint;
+            double fdx = (ep != null ? ep.X : v.X) - v.X;
+            double fdy = (ep != null ? ep.Y : v.Y) - v.Y;
+            var refP = ep != null ? (ep.SpatialReference == null && vSr != null ? MapPointBuilderEx.CreateMapPoint(ep.X, ep.Y, vSr) : ep) : v;
+            return (fdx, fdy, refP);
+        }
+
+        private static double? CalculateAngleFromVectors(
+            double dx1, double dy1, double dx2, double dy2, MapPoint v, SpatialReference sr)
+        {
+            if (v == null) return null;
 
             // In geographic CRS, scale dx by cos(latitude) so vertex angle reflects true ground shape
-            var ptSr = a.SpatialReference ?? v.SpatialReference ?? sr;
+            var ptSr = v.SpatialReference ?? sr;
             if (ptSr != null && ptSr.IsGeographic)
             {
                 double latRad = (v.Y * Math.PI) / 180.0;
@@ -322,13 +381,23 @@ namespace GeoMetrics.Measurement
             double cosVal = Math.Clamp(dot / (len1 * len2), -1.0, 1.0);
             double deg = Math.Acos(cosVal) * (180.0 / Math.PI);
 
-            // Exclude straight-line angles close to 180 degrees (within 1.0 degree tolerance)
+            // Exclude straight-line angles and smooth tangent transitions close to 180 degrees (within 1.0 degree tolerance)
             if (Math.Abs(deg - 180.0) < 1.0 || deg < 0.5)
             {
                 return null;
             }
 
             return deg;
+        }
+
+        public static double? CalculateAngle(MapPoint a, MapPoint v, MapPoint b, SpatialReference sr)
+        {
+            if (a == null || v == null || b == null) return null;
+
+            double dx1 = a.X - v.X, dy1 = a.Y - v.Y;
+            double dx2 = b.X - v.X, dy2 = b.Y - v.Y;
+
+            return CalculateAngleFromVectors(dx1, dy1, dx2, dy2, v, sr);
         }
 
         private static List<SegmentMeasurement> BuildSegments(
@@ -342,37 +411,173 @@ namespace GeoMetrics.Measurement
             var segments = new List<SegmentMeasurement>();
             if (parts == null) return segments;
 
+            bool isGcs = sr != null && sr.IsGeographic;
+            bool planarOnGcsWithProjectedMap = !geodesic && isGcs && mapSr != null && !mapSr.IsGeographic;
+
             foreach (var part in parts)
             {
-                // Collect all vertex points for this part and ensure SpatialReference is preserved
-                var pts = new List<MapPoint>(part.Count + 1);
+                if (part == null) continue;
+
                 foreach (var seg in part)
                 {
+                    if (seg == null) continue;
+
                     var sp = seg.StartPoint;
                     if (sp.SpatialReference == null && sr != null)
                         sp = MapPointBuilderEx.CreateMapPoint(sp.X, sp.Y, sr);
-                    pts.Add(sp);
-                }
-                if (part.Count > 0)
-                {
-                    var ep = part[part.Count - 1].EndPoint;
+
+                    var ep = seg.EndPoint;
                     if (ep.SpatialReference == null && sr != null)
                         ep = MapPointBuilderEx.CreateMapPoint(ep.X, ep.Y, sr);
-                    pts.Add(ep);
-                }
 
-                for (int i = 0; i < pts.Count - 1; i++)
-                {
-                    var a = pts[i];
-                    var b = pts[i + 1];
+                    bool isCurve = seg.IsCurve;
 
-                    double nativeLen = MeasureDistance(a, b, geodesic, sr, mapSr);
+                    // ── 1. Calculate true segment length (planar or geodesic) ─────────
+                    double nativeLen = 0.0;
+
+                    if (geodesic)
+                    {
+                        try
+                        {
+                            var segPoly = PolylineBuilderEx.CreatePolyline(seg, sr);
+                            nativeLen = GeometryEngine.Instance.GeodesicLength(segPoly);
+                        }
+                        catch
+                        {
+                            nativeLen = 0.0;
+                        }
+
+                        if (double.IsNaN(nativeLen) || nativeLen <= 0.0)
+                        {
+                            if (isCurve)
+                            {
+                                if (isGcs)
+                                {
+                                    // GCS units are angular degrees: convert arc length to meters along great circle
+                                    nativeLen = seg.Length * 111319.49079327357;
+                                }
+                                else
+                                {
+                                    nativeLen = seg.Length;
+                                }
+                            }
+                            else
+                            {
+                                nativeLen = MeasureDistance(sp, ep, true, sr, mapSr);
+                            }
+                        }
+                    }
+                    else if (planarOnGcsWithProjectedMap)
+                    {
+                        // Planar measurement for GCS feature projected into map's projected CRS
+                        try
+                        {
+                            var segPoly = PolylineBuilderEx.CreatePolyline(seg, sr);
+                            var projPoly = GeometryEngine.Instance.Project(segPoly, mapSr) as Polyline;
+                            nativeLen = GeometryEngine.Instance.Length(projPoly ?? segPoly);
+                        }
+                        catch
+                        {
+                            nativeLen = seg.Length;
+                        }
+
+                        if (double.IsNaN(nativeLen) || nativeLen <= 0.0)
+                        {
+                            nativeLen = MeasureDistance(sp, ep, false, sr, mapSr);
+                        }
+                    }
+                    else
+                    {
+                        // Planar measurement in native CRS: seg.Length returns true curve arc length!
+                        nativeLen = seg.Length;
+                        if (double.IsNaN(nativeLen) || nativeLen <= 0.0)
+                        {
+                            nativeLen = MeasureDistance(sp, ep, false, sr, mapSr);
+                        }
+                    }
+
                     var (displayLen, abbrev) = UnitConverter.ConvertLength(
                         nativeLen, nativeLinAbbrev, settings.DisplayUnit);
 
-                    double? bearing = settings.ShowBearings ? ComputeBearing(a, b, sr) : (double?)null;
+                    // ── 2. Midpoint & Tangent Angle for label placement ───────────────
+                    MapPoint midPoint = null;
+                    double? tangentAngle = null;
 
-                    segments.Add(new SegmentMeasurement(a, b, nativeLen, displayLen, abbrev, bearing));
+                    if (isCurve)
+                    {
+                        try
+                        {
+                            // Query midpoint at 50% along the curve
+                            midPoint = GeometryEngine.Instance.QueryPoint(seg, SegmentExtensionType.NoExtension, 0.5, AsRatioOrLength.AsRatio);
+                            if (midPoint != null && midPoint.SpatialReference == null && sr != null)
+                            {
+                                midPoint = MapPointBuilderEx.CreateMapPoint(midPoint.X, midPoint.Y, sr);
+                            }
+
+                            // Query tangent line segment at 50% along curve
+                            var tangent = GeometryEngine.Instance.QueryTangent(seg, SegmentExtensionType.NoExtension, 0.5, AsRatioOrLength.AsRatio, 10.0);
+                            if (tangent != null)
+                            {
+                                double tdx = tangent.EndPoint.X - tangent.StartPoint.X;
+                                double tdy = tangent.EndPoint.Y - tangent.StartPoint.Y;
+                                double deg = Math.Atan2(tdy, tdx) * (180.0 / Math.PI);
+                                if (deg > 90.0) deg -= 180.0;
+                                else if (deg < -90.0) deg += 180.0;
+                                tangentAngle = deg;
+                            }
+                        }
+                        catch
+                        {
+                            // Fallback handled below
+                        }
+                    }
+
+                    if (midPoint == null)
+                    {
+                        midPoint = MapPointBuilderEx.CreateMapPoint((sp.X + ep.X) * 0.5, (sp.Y + ep.Y) * 0.5, sp.SpatialReference ?? sr);
+                    }
+
+                    if (!tangentAngle.HasValue)
+                    {
+                        double dx = ep.X - sp.X;
+                        double dy = ep.Y - sp.Y;
+                        if (isGcs)
+                        {
+                            double latRad = (((sp.Y + ep.Y) * 0.5) * Math.PI) / 180.0;
+                            dx *= Math.Max(0.01, Math.Cos(latRad));
+                        }
+                        double deg = Math.Atan2(dy, dx) * (180.0 / Math.PI);
+                        if (deg > 90.0) deg -= 180.0;
+                        else if (deg < -90.0) deg += 180.0;
+                        tangentAngle = deg;
+                    }
+
+                    // ── 3. Central Angle (for circular / elliptic arcs) ───────────────
+                    double? centralAngle = null;
+                    if (seg is EllipticArcSegment arcSeg)
+                    {
+                        try
+                        {
+                            centralAngle = Math.Abs(arcSeg.CentralAngle) * (180.0 / Math.PI);
+                        }
+                        catch
+                        {
+                            centralAngle = null;
+                        }
+                    }
+
+                    // ── 4. Bearing ───────────────────────────────────────────────────
+                    double? bearing = settings.ShowBearings ? ComputeBearing(sp, ep, sr) : (double?)null;
+
+                    segments.Add(new SegmentMeasurement(
+                        sp, ep,
+                        nativeLen, displayLen, abbrev,
+                        bearing,
+                        isCurve,
+                        midPoint,
+                        tangentAngle,
+                        centralAngle,
+                        seg.SegmentType));
                 }
             }
 
