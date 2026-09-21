@@ -9,7 +9,7 @@
     <Description>
       GeoMetrics is an ArcGIS Pro Add-in for real-time geometry measurements, including segment lengths, area, perimeter, and other geometry information during feature selection and editing.
     </Description>
-    <Image>Images\AddinDesktop32.png</Image>
+    <Image>Images\GeoMetricsLogo_32.png</Image>
     <Author>Aboelmagd</Author>
     <Company>Al-Qotr Co.</Company>
     <Date>8/24/2026</Date>
@@ -28,8 +28,8 @@
                 className="UI.DimensionToggleButton"
                 loadOnClick="false"
                 keytip="D"
-                smallImage="Images\GeoMetricsToggle_OFF_16.png"
-                largeImage="Images\GeoMetricsToggle_OFF_32.png">
+                smallImage="Images\GeoMetricsLogo_16.png"
+                largeImage="Images\GeoMetricsLogo_32.png">
           <tooltip heading="GeoMetrics (ON / OFF)">
             Toggle real-time geometry measurements ON or OFF.
             When ON: segment lengths and area update live during editing and selection.

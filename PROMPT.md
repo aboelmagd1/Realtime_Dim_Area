@@ -18,7 +18,7 @@ The tool operates as a **passive real-time overlay** over ArcGIS Pro's native **
 - **Target Framework**: `net8.0-windows` (.NET 8.0).
 - **Primary SDK Reference**: `Esri.ArcGISPro.Extensions30` NuGet package.
 - **UI Framework**: WPF / XAML integrated into the ArcGIS Pro Framework (`DockPane`, `Button`, `Module`).
-- **Packaging Format**: Esri ArcGIS Pro Add-in package (`.esriAddinX` archive containing `Config.daml` at root and binaries in `Install/`).
+- **Packaging Format**: Esri ArcGIS Pro Add-in package (`.esriAddinX` archive containing `Config.daml` and `Images/` at root, and binaries in `Install/`).
 
 ---
 
@@ -117,6 +117,18 @@ The tool operates as a **passive real-time overlay** over ArcGIS Pro's native **
 - **Architectural Implementation**:
   - `DimensionSettingsPaneView.xaml`: Defines implicit styles for `GroupBox`, `CheckBox`, `RadioButton`, and `TextBlock` bound to `Esri_TextPrimaryBrush` / `Esri_TextSecondaryBrush`.
   - `DimensionSettingsPaneView.xaml.cs`: Queries `FrameworkApplication.ApplicationTheme`. If `Default` (Light Theme), swaps dynamic brush resources to pure black solid color brushes. Hooked into `Loaded` and `IsVisibleChanged` lifecycle events to maintain high contrast dynamically.
+
+### I. Visual Branding & Icon Architecture
+- **Main Tool & Add-In Brand Logo**:
+  - Official high-resolution icon assets: `GeoMetricsLogo_16.png`, `GeoMetricsLogo_32.png`, `GeoMetricsLogo_64.png`.
+  - **Add-In Manager (`AddInInfo`)**: Points directly to `<Image>Images\GeoMetricsLogo_32.png</Image>` to ensure immediate professional representation in the ArcGIS Pro Add-In Manager.
+- **Dynamic Ribbon Button Behavior**:
+  - `GeoMetrics_ToggleDimensions` declares `smallImage="Images\GeoMetricsLogo_16.png"` and `largeImage="Images\GeoMetricsLogo_32.png"` in `Config.daml`.
+  - In `DimensionToggleButton.cs`: Default/OFF appearance renders the official **GeoMetrics Logo** (`GeoMetricsLogo_32.png`), and active state renders the vibrant emerald **Toggle ON** icon (`GeoMetricsToggle_ON_32.png`).
+- **Settings Icon**:
+  - `ShowSettingsButton` declares and dynamically loads `GeoMetricsSettings_32.png` / `16.png`.
+- **Packaging Guarantees**:
+  - MSBuild target `PackageAddInCustom` in `GeoMetrics.csproj` copies all `Images\**\*.*` to the root `Images/` folder of the staging directory as well as to `Install/Images/`. This guarantees ArcGIS Pro's DAML engine can resolve icon paths from the package root prior to assembly activation.
 
 ---
 

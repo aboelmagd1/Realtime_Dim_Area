@@ -45,18 +45,23 @@ It operates as a **passive real-time monitor** during standard ArcGIS Pro workfl
 
 ### System Requirements
 - **Operating System**: Windows 10 / 11 (64-bit).
-- **Host Application**: ArcGIS Pro 3.3.x, 3.4.x (or newer).
-- **Runtime**: Microsoft .NET Desktop Runtime 8.0 (x64).
+- **Host Application**: ArcGIS Pro 3.3.x (verified on 3.3.0.52636) or 3.4.x.
+- **Runtime**: Microsoft .NET Desktop Runtime 8.0 (x64) (e.g. 8.0.2 / 8.0.20 / 8.0.31).
 
-### 1-Click Installation (تثبيت بنقرة واحدة)
+### Building & Installation (البناء والتثبيت)
+
+#### Option A: 1-Click Installation from Pre-built Package
 1. Close any running instances of **ArcGIS Pro**.
-2. Navigate to the project folder:
-   ```
-   d:\Learning\Realtime Dim Area\Addin_Package\
-   ```
-3. Double-click [**`GeoMetrics.esriAddinX`**](file:///d:/Learning/Realtime%20Dim%20Area/Addin_Package/GeoMetrics.esriAddinX).
-4. In the Esri Add-In Installation Wizard, click **Install Add-In**.
-5. Launch **ArcGIS Pro**. The **GeoMetrics** tab will appear on your top ribbon.
+2. Open [`Addin_Package/`](file:///d:/Learning/Realtime%20Dim%20Area/Addin_Package/) and double-click [**`GeoMetrics.esriAddinX`**](file:///d:/Learning/Realtime%20Dim%20Area/Addin_Package/GeoMetrics.esriAddinX).
+3. In the Esri Add-In Installation Wizard, click **Install Add-In**.
+4. Launch **ArcGIS Pro**. The **GeoMetrics** tab will appear on your top ribbon with the official tool logo.
+
+#### Option B: Building from Source
+Run the following command from PowerShell:
+```powershell
+dotnet build GeoMetrics.csproj -c Release
+```
+This automatically updates `Addin_Package/GeoMetrics.esriAddinX` with all root DAML assets and compiled binaries.
 
 ---
 
@@ -66,17 +71,19 @@ It operates as a **passive real-time monitor** during standard ArcGIS Pro workfl
 ┌────────────────────────────────────────────────────────────────────────┐
 │                              RIBBON BAR                                │
 │ [Tab: GeoMetrics]                                                      │
-│  ├── [🔘 GeoMetrics (ON/OFF)] -> Master toggle switch with live icon   │
-│  └── [⚙️ Settings]            -> Opens the GeoMetrics Settings Pane    │
+│  ├── [🔘 GeoMetrics Logo / ON/OFF] -> Master toggle switch with live icon │
+│  └── [⚙️ Settings]                 -> Opens the GeoMetrics Settings Pane │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 1. Ribbon Tab: `GeoMetrics`
-- **GeoMetrics (ON / OFF) Button**:
-  - **Red / OFF**: GeoMetrics is inactive. No events are monitored, and no graphics are drawn.
-  - **Green / ON**: GeoMetrics is actively monitoring edits and selections, updating overlays live.
+- **GeoMetrics (ON / OFF) Primary Tool Button**:
+  - **Brand Logo / OFF State**: Displays the official **GeoMetrics Brand Icon** (`GeoMetricsLogo_32.png`). The tool is idle; no background monitoring or overlay rendering is active.
+  - **Active Emerald / ON State**: Instantly switches to the **Active State Icon** (`GeoMetricsToggle_ON_32.png`) with caption `GeoMetrics (ON)`. The tool actively monitors edit vertices and feature selections, calculating and rendering dimensions live at 60 FPS.
+  - Toggling OFF immediately removes all map overlays and restores the primary tool logo.
 - **Settings Button**:
-  - Opens the dedicated **GeoMetrics Settings** dockpane on the right side of the screen.
+  - Displays the dedicated **Settings Gear Icon** (`GeoMetricsSettings_32.png`).
+  - Opens the **GeoMetrics Settings** dockpane on the right side of the screen.
 
 ### 2. GeoMetrics Settings DockPane
 

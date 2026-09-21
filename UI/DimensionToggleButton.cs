@@ -52,8 +52,8 @@ namespace GeoMetrics.UI
             {
                 _onLargeImage = new BitmapImage(new Uri("pack://application:,,,/GeoMetrics;component/Images/GeoMetricsToggle_ON_32.png", UriKind.Absolute));
                 _onSmallImage = new BitmapImage(new Uri("pack://application:,,,/GeoMetrics;component/Images/GeoMetricsToggle_ON_16.png", UriKind.Absolute));
-                _offLargeImage = new BitmapImage(new Uri("pack://application:,,,/GeoMetrics;component/Images/GeoMetricsToggle_OFF_32.png", UriKind.Absolute));
-                _offSmallImage = new BitmapImage(new Uri("pack://application:,,,/GeoMetrics;component/Images/GeoMetricsToggle_OFF_16.png", UriKind.Absolute));
+                _offLargeImage = new BitmapImage(new Uri("pack://application:,,,/GeoMetrics;component/Images/GeoMetricsLogo_32.png", UriKind.Absolute));
+                _offSmallImage = new BitmapImage(new Uri("pack://application:,,,/GeoMetrics;component/Images/GeoMetricsLogo_16.png", UriKind.Absolute));
             }
             catch
             {

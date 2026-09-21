@@ -28,6 +28,11 @@ It operates passively on top of ArcGIS Pro's native **Edit → Modify** workflow
   - **Vertex Angles**: Measures angles between consecutive segments at vertices. Angles close to 180° (straight lines within ±1.0°) are automatically filtered out. Default: *Unchecked*.
   - **Bearings / Azimuth**: Segment direction angles.
   - **Quality Control (QC)**: Area difference and tolerance checking against pre-edit geometry.
+- **Visual Branding & Main Tool Icon**:
+  - Features the dedicated, high-resolution **GeoMetrics Brand Logo** (`GeoMetricsLogo_32.png` / `16.png` / `64.png`) on the main Ribbon button and in the ArcGIS Pro Add-In Manager.
+  - **Dynamic State Transitions**: The Ribbon button displays the primary GeoMetrics Logo by default (and in OFF state), smoothly transitioning to an active emerald state (`GeoMetricsToggle_ON_32.png`) when engaged, and reverting to the logo when toggled off.
+  - Distinctive settings icon (`GeoMetricsSettings_32.png`) for the dockpane launcher.
+  - **DAML-Compliant Packaging**: Images are packaged directly at the archive root of `.esriAddinX` to guarantee immediate icon rendering in the Ribbon and Add-In Manager before assembly instantiation.
 - **Service Layer Support & Safety**:
   - Automatically identifies remote service-backed layers (FeatureServer, MapServer, Hosted Feature Layers, ArcGIS Online / Enterprise Portal services, WFS, WMS).
   - Distinguishes local data sources (File Geodatabase `.gdb`, Mobile Geodatabase `.geodatabase`, Shapefiles, direct Enterprise SDE).
@@ -120,26 +125,26 @@ GeoMetrics/
 - **Visual Studio 2022** with .NET 8 Desktop Development & ArcGIS Pro SDK for .NET
 
 ### Building the Add-in
-Run MSBuild from the Developer Command Prompt or Visual Studio:
+Build using the .NET CLI or MSBuild:
 
 ```powershell
-# Build Debug
-msbuild GeoMetrics.csproj /p:Configuration=Debug
+# Recommended: Standard .NET 8 CLI build (Release)
+dotnet build GeoMetrics.csproj -c Release
 
-# Build Release
+# Or via MSBuild from Developer Command Prompt
 msbuild GeoMetrics.csproj /p:Configuration=Release
 ```
 
-The output `.esriAddinX` package is generated in:
-```
-Addin_Package\GeoMetrics.esriAddinX
-```
+The output `.esriAddinX` package is automatically created and placed in:
+- [`Addin_Package/GeoMetrics.esriAddinX`](file:///d:/Learning/Realtime%20Dim%20Area/Addin_Package/GeoMetrics.esriAddinX)
+- [`bin/Release/GeoMetrics.esriAddinX`](file:///d:/Learning/Realtime%20Dim%20Area/bin/Release/GeoMetrics.esriAddinX)
 
 ### Installation
-1. Locate the pre-built Add-in in the `Addin_Package/` folder:
+1. Close any running instances of **ArcGIS Pro**.
+2. Locate the generated Add-in:
    - Double-click [`Addin_Package/GeoMetrics.esriAddinX`](file:///d:/Learning/Realtime%20Dim%20Area/Addin_Package/GeoMetrics.esriAddinX).
-2. Click **Install Add-In** in the Esri Add-in Installation Utility.
-3. Open ArcGIS Pro. The **GeoMetrics** tab appears on the Ribbon.
+3. Click **Install Add-In** in the Esri Add-in Installation Wizard.
+4. Launch ArcGIS Pro. The **GeoMetrics** tab will appear on the Ribbon with the official tool logo.
 
 ---
 ---
@@ -176,23 +181,29 @@ Addin_Package\GeoMetrics.esriAddinX
    - **الانحرافات (Bearings / Azimuth)**: زوايا اتجاه كل ضلع.
    - **فحص الجودة (QC)**: حساب فرق المساحة ونسبة التسامح مقارنة بالمساحة الأصلية قبل التعديل.
 
-6. **دعم طبقات الخدمات السحابية (Service Layers)**:
+6. **الهوية البصرية ومنظومة الأيقونات المتطورة**:
+   - **أيقونة رئيسية مميزة للتول**: اعتماد اللوجو الرسمي لـ GeoMetrics (`GeoMetricsLogo_32.png` / `16.png` / `64.png`) كأيقونة رئيسية للأداة في الشريط العلوي (Ribbon) وداخل نافذة إدارة الإضافات (Add-In Manager).
+   - **التحول الحركي الذكي للحالة (Dynamic State Transitions)**: يظهر زر الأداة باللوجو الرسمي في حالته الافتراضية وغير المفعلة (OFF)، ويتحول تلقائياً إلى اللون الأخضر الزمردي النشط (`GeoMetricsToggle_ON_32.png`) عند التفعيل (ON)، ثم يعود للوجو الأصلي فور إيقافه.
+   - **أيقونة إعدادات مخصصة**: زر لوحة الإعدادات مزود بأيقونة التروس الأنيقة (`GeoMetricsSettings_32.png`).
+   - **توافق التحزيم (DAML Packaging)**: تم تضمين مجلد `Images/` في جذر حزمة `.esriAddinX` لضمان تعرف محرك ArcGIS Pro على الأيقونات فوراً دون الحاجة لانتظار تحميل الـ DLL.
+
+7. **دعم طبقات الخدمات السحابية (Service Layers)**:
    - التمييز الدقيق بين الطبقات المحلية (File Geodatabase `.gdb`, Mobile Geodatabase, Shapefiles, Enterprise SDE direct) وبين طبقات الخدمات عن بعد (FeatureServer, MapServer, Hosted Layers, AGOL/Portal, WFS, WMS).
    - خيار "تطبيق على طبقات الخدمات" (`Apply to Service Layers`) معطل افتراضياً (`OFF`).
    - إشعار توضيحي غير مزعج للمستخدم عند اختيار طبقة خدمة بدون إظهار أخطاء.
 
-7. **التوافق الكامل مع السمات (Light & Dark Themes)**:
+8. **التوافق الكامل مع السمات (Light & Dark Themes)**:
    - تكامل ذكي مع مظهر ArcGIS Pro؛ تتحول جميع نصوص لوحة الإعدادات وعناصر التحكم تلقائياً إلى **اللون الأسود الداكن** في السمة الفاتحة (Light Theme) لضمان أعلى وضوح ومقروءية، وتظل **باللون الأبيض الناصع** في السمة الداكنة (Dark Theme).
 
-8. **القياس المتعدد للمعالم (Multi-Feature Measurements)**:
+9. **القياس المتعدد للمعالم (Multi-Feature Measurements)**:
    - دعم قياس وترقيم عدة معالم محددة في وقت واحد مع تحديد حد أقصى (10 إلى 200 معلم)، وخيار وضع الأبعاد داخل حدود المضلعات لتجنب تداخل النصوص بين المعالم المتجاورة.
 
-9. **شاشات المعلومات والتحذيرات (HUD & Warnings)**:
-   - عداد مباشر لعدد النقاط والأضلاع الظاهرة على الشاشة (HUD)، مع مؤشر تحذيري للأبعاد المخفية بسبب مستوى التقريب (Zoom).
+10. **شاشات المعلومات والتحذيرات (HUD & Warnings)**:
+    - عداد مباشر لعدد النقاط والأضلاع الظاهرة على الشاشة (HUD)، مع مؤشر تحذيري للأبعاد المخفية بسبب مستوى التقريب (Zoom).
 
-10. **الإعدادات الافتراضية القياسية**:
-   - الوحدة الافتراضية: **المتر (`Meter`)**.
-   - النمط الافتراضي: **Numbers_Only** (يعرض الرقم + الوحدة مثل `35.42 m` و `1250.52 m²` بدون كلمات وصفية مثل `Length:` أو `Area:`).
+11. **الإعدادات الافتراضية القياسية**:
+    - الوحدة الافتراضية: **المتر (`Meter`)**.
+    - النمط الافتراضي: **Numbers_Only** (يعرض الرقم + الوحدة مثل `35.42 m` و `1250.52 m²` بدون كلمات وصفية مثل `Length:` أو `Area:`).
 
 ---
 
@@ -274,20 +285,23 @@ GeoMetrics/
 - برنامج **ArcGIS Pro 3.3.x أو 3.4.x**.
 - بيئة **Visual Studio 2022** مع .NET 8 وحزمة ArcGIS Pro SDK for .NET.
 
-### خطوات البناء عبر السطر البرمجي (MSBuild)
-من موجه أوامر المطور (Developer Command Prompt):
+### خطوات البناء والتجميع
+يمكنك البناء بسهولة عبر سطر الأوامر باستخدام .NET CLI أو MSBuild:
 
 ```powershell
-# بناء نسخة Release
+# الطريقة الموصى بها: البناء المباشر عبر .NET 8 CLI
+dotnet build GeoMetrics.csproj -c Release
+
+# أو عبر موجه أوامر المطور (Developer Command Prompt)
 msbuild GeoMetrics.csproj /p:Configuration=Release
 ```
 
-يتم توليد ملف الإضافة الجاهز في المسار:
-```
-Addin_Package\GeoMetrics.esriAddinX
-```
+يتم إنشاء وتحديث ملف الإضافة `.esriAddinX` تلقائياً في:
+- [`Addin_Package/GeoMetrics.esriAddinX`](file:///d:/Learning/Realtime%20Dim%20Area/Addin_Package/GeoMetrics.esriAddinX)
+- [`bin/Release/GeoMetrics.esriAddinX`](file:///d:/Learning/Realtime%20Dim%20Area/bin/Release/GeoMetrics.esriAddinX)
 
 ### التثبيت والتشغيل
-1. افتح مجلد `Addin_Package/` وانقر نقراً مزدوجاً على ملف [`GeoMetrics.esriAddinX`](file:///d:/Learning/Realtime%20Dim%20Area/Addin_Package/GeoMetrics.esriAddinX).
-2. اضغط على **Install Add-In** في نافذة التثبيت التلقائية لـ Esri.
-3. افتح ArcGIS Pro ستجد تبويب **GeoMetrics** جاهزاً في الشريط العلوي.
+1. أغلق أي نوافذ مفتوحة لبرنامج **ArcGIS Pro**.
+2. افتح المجلد وانقر نقراً مزدوجاً على ملف [`Addin_Package/GeoMetrics.esriAddinX`](file:///d:/Learning/Realtime%20Dim%20Area/Addin_Package/GeoMetrics.esriAddinX).
+3. اضغط على **Install Add-In** في نافذة التثبيت التلقائية لـ Esri.
+4. افتح ArcGIS Pro ستجد تبويب **GeoMetrics** جاهزاً في الشريط العلوي باللوجو والأيقونة الرسمية.

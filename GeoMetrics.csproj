@@ -50,6 +50,12 @@
     <!-- Copy Config.daml to root -->
     <Copy SourceFiles="$(OutDir)Config.daml" DestinationFolder="$(StagingDir)" Condition="Exists('$(OutDir)Config.daml')" />
 
+    <!-- Copy Images to root for ArcGIS Pro DAML and Add-in Manager icon resolution -->
+    <ItemGroup>
+      <AddInRootImages Include="$(ProjectDir)Images\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(AddInRootImages)" DestinationFolder="$(StagingDir)Images\%(RecursiveDir)" Condition="'@(AddInRootImages)' != ''" />
+
     <!-- Copy binaries and content to Install/ subfolder -->
     <ItemGroup>
       <InstallFiles Include="$(OutDir)**\*" Exclude="$(OutDir)Config.daml;$(OutDir)*.esriAddinX" />
