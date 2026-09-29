@@ -299,6 +299,54 @@
                 <StackPanel>
                     <CheckBox Content="Segment lengths"
                               IsChecked="{Binding Settings.ShowSegmentLength, Mode=TwoWay}"/>
+
+                    <!-- Merge Collinear Segments (Angle ≈ 180°) -->
+                    <DockPanel Margin="0,3" LastChildFill="True" IsEnabled="{Binding Settings.ShowSegmentLength}">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Tol (±°):"
+                                       FontSize="11"
+                                       Margin="6,0,3,0"
+                                       VerticalAlignment="Center"
+                                       Foreground="{DynamicResource Esri_TextSecondaryBrush}"
+                                       IsEnabled="{Binding Settings.MergeCollinearSegments}"/>
+                            <!-- Manual entry TextBox -->
+                            <TextBox Width="36"
+                                     Height="22"
+                                     VerticalAlignment="Center"
+                                     HorizontalContentAlignment="Center"
+                                     VerticalContentAlignment="Center"
+                                     Foreground="{DynamicResource DropdownTextBrush}"
+                                     Background="{DynamicResource DropdownBackgroundBrush}"
+                                     BorderBrush="{DynamicResource DropdownBorderBrush}"
+                                     BorderThickness="1"
+                                     ToolTip="Enter custom tolerance angle in degrees (e.g. 1.5, 12, or 30)"
+                                     Text="{Binding Settings.CollinearAngleToleranceText, Mode=TwoWay, UpdateSourceTrigger=LostFocus}"
+                                     KeyDown="ToleranceTextBox_KeyDown"
+                                     IsEnabled="{Binding Settings.MergeCollinearSegments}"/>
+                            <!-- Presets Dropdown ComboBox (up to 30°) -->
+                            <ComboBox Width="54"
+                                      Height="22"
+                                      Margin="3,0,0,0"
+                                      VerticalAlignment="Center"
+                                      ToolTip="Select preset tolerance angle (up to 30°)"
+                                      ItemsSource="{Binding CollinearAngleToleranceList}"
+                                      SelectedItem="{Binding Settings.CollinearAngleTolerance, Mode=TwoWay}"
+                                      IsEnabled="{Binding Settings.MergeCollinearSegments}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding StringFormat='{}{0:0.##}°'}" Foreground="{DynamicResource DropdownTextBrush}" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                        <CheckBox Margin="16,0,0,0"
+                                  Content="Merge collinear segments (≈180°)"
+                                  VerticalAlignment="Center"
+                                  IsChecked="{Binding Settings.MergeCollinearSegments, Mode=TwoWay}"/>
+                    </DockPanel>
+                    <TextBlock Style="{StaticResource Hint}"
+                               Margin="34,0,0,4"
+                               Text="Combine adjacent segments whose angle is close to 180° into a single summed length (Default: ON, up to 30° or custom)."/>
                     <CheckBox Content="Polygon area"
                               IsChecked="{Binding Settings.ShowArea, Mode=TwoWay}"/>
                     <CheckBox Content="Perimeter"

@@ -133,10 +133,10 @@ namespace GeoMetrics.Measurement
             }
 
             // ── Segments (all parts) ─────────────────────────────────────────────
-            var segments = BuildSegments(polygon.Parts, sr, geodesic, nativeLinAbbrev, settings, mapSr);
+            var segments = BuildSegments(polygon.Parts, sr, geodesic, nativeLinAbbrev, settings, mapSr, isPolygon: true);
 
             // ── Vertex Angles ─────────────────────────────────────────────────────
-            var angles = BuildVertexAngles(polygon.Parts, sr, isPolygon: true);
+            var angles = BuildVertexAngles(polygon.Parts, sr, isPolygon: true, settings);
 
             // ── Assemble result ───────────────────────────────────────────────────
             var result = new PolygonMeasurementResult(
@@ -216,8 +216,8 @@ namespace GeoMetrics.Measurement
             var (displayTotal, linearAbbrev) =
                 UnitConverter.ConvertLength(nativeTotal, nativeLinAbbrev, settings.DisplayUnit);
 
-            var segments = BuildSegments(polyline.Parts, sr, geodesic, nativeLinAbbrev, settings, mapSr);
-            var angles = BuildVertexAngles(polyline.Parts, sr, isPolygon: false);
+            var segments = BuildSegments(polyline.Parts, sr, geodesic, nativeLinAbbrev, settings, mapSr, isPolygon: false);
+            var angles = BuildVertexAngles(polyline.Parts, sr, isPolygon: false, settings);
 
             return new PolylineMeasurementResult(polyline, segments, displayTotal, linearAbbrev, angles);
         }
@@ -226,7 +226,7 @@ namespace GeoMetrics.Measurement
 
         private static string nativeAreaAreaAbbrev(string defaultAbbrev) => defaultAbbrev ?? "m\u00B2";
 
-        private static List<VertexAngleMeasurement> BuildVertexAngles(ReadOnlyPartCollection parts, SpatialReference sr, bool isPolygon)
+        private static List<VertexAngleMeasurement> BuildVertexAngles(ReadOnlyPartCollection parts, SpatialReference sr, bool isPolygon, DimensionSettings settings = null)
         {
             var angles = new List<VertexAngleMeasurement>();
             if (parts == null) return angles;
@@ -255,7 +255,7 @@ namespace GeoMetrics.Measurement
                         var (dx1, dy1, prevPt) = GetIncomingTangentVector(segPrev, v, sr);
                         var (dx2, dy2, nextPt) = GetOutgoingTangentVector(segNext, v, sr);
 
-                        double? angle = CalculateAngleFromVectors(dx1, dy1, dx2, dy2, v, sr);
+                        double? angle = CalculateAngleFromVectors(dx1, dy1, dx2, dy2, v, sr, settings);
                         if (angle.HasValue)
                         {
                             angles.Add(new VertexAngleMeasurement(v, angle.Value, prevPt, nextPt));
@@ -279,7 +279,7 @@ namespace GeoMetrics.Measurement
                         var (dx1, dy1, prevPt) = GetIncomingTangentVector(segPrev, v, sr);
                         var (dx2, dy2, nextPt) = GetOutgoingTangentVector(segNext, v, sr);
 
-                        double? angle = CalculateAngleFromVectors(dx1, dy1, dx2, dy2, v, sr);
+                        double? angle = CalculateAngleFromVectors(dx1, dy1, dx2, dy2, v, sr, settings);
                         if (angle.HasValue)
                         {
                             angles.Add(new VertexAngleMeasurement(v, angle.Value, prevPt, nextPt));
@@ -357,7 +357,7 @@ namespace GeoMetrics.Measurement
             return (fdx, fdy, refP);
         }
 
-        private static double? CalculateAngleFromVectors(
+        private static double? ComputeVertexAngleDegrees(
             double dx1, double dy1, double dx2, double dy2, MapPoint v, SpatialReference sr)
         {
             if (v == null) return null;
@@ -379,25 +379,36 @@ namespace GeoMetrics.Measurement
 
             double dot = (dx1 * dx2) + (dy1 * dy2);
             double cosVal = Math.Clamp(dot / (len1 * len2), -1.0, 1.0);
-            double deg = Math.Acos(cosVal) * (180.0 / Math.PI);
+            return Math.Acos(cosVal) * (180.0 / Math.PI);
+        }
 
-            // Exclude straight-line angles and smooth tangent transitions close to 180 degrees (within 1.0 degree tolerance)
-            if (Math.Abs(deg - 180.0) < 1.0 || deg < 0.5)
+        private static double? CalculateAngleFromVectors(
+            double dx1, double dy1, double dx2, double dy2, MapPoint v, SpatialReference sr, DimensionSettings settings = null)
+        {
+            var deg = ComputeVertexAngleDegrees(dx1, dy1, dx2, dy2, v, sr);
+            if (!deg.HasValue) return null;
+
+            double tolerance = (settings != null && settings.MergeCollinearSegments)
+                ? Math.Max(1.0, settings.CollinearAngleTolerance)
+                : 1.0;
+
+            // Exclude straight-line angles and smooth tangent transitions close to 180 degrees
+            if (Math.Abs(deg.Value - 180.0) <= tolerance || deg.Value < 0.5)
             {
                 return null;
             }
 
-            return deg;
+            return deg.Value;
         }
 
-        public static double? CalculateAngle(MapPoint a, MapPoint v, MapPoint b, SpatialReference sr)
+        public static double? CalculateAngle(MapPoint a, MapPoint v, MapPoint b, SpatialReference sr, DimensionSettings settings = null)
         {
             if (a == null || v == null || b == null) return null;
 
             double dx1 = a.X - v.X, dy1 = a.Y - v.Y;
             double dx2 = b.X - v.X, dy2 = b.Y - v.Y;
 
-            return CalculateAngleFromVectors(dx1, dy1, dx2, dy2, v, sr);
+            return CalculateAngleFromVectors(dx1, dy1, dx2, dy2, v, sr, settings);
         }
 
         private static List<SegmentMeasurement> BuildSegments(
@@ -406,7 +417,8 @@ namespace GeoMetrics.Measurement
             bool geodesic,
             string nativeLinAbbrev,
             DimensionSettings settings,
-            SpatialReference mapSr = null)
+            SpatialReference mapSr = null,
+            bool isPolygon = false)
         {
             var segments = new List<SegmentMeasurement>();
             if (parts == null) return segments;
@@ -417,6 +429,8 @@ namespace GeoMetrics.Measurement
             foreach (var part in parts)
             {
                 if (part == null) continue;
+
+                var rawPartSegments = new List<SegmentMeasurement>();
 
                 foreach (var seg in part)
                 {
@@ -569,7 +583,7 @@ namespace GeoMetrics.Measurement
                     // ── 4. Bearing ───────────────────────────────────────────────────
                     double? bearing = settings.ShowBearings ? ComputeBearing(sp, ep, sr) : (double?)null;
 
-                    segments.Add(new SegmentMeasurement(
+                    rawPartSegments.Add(new SegmentMeasurement(
                         sp, ep,
                         nativeLen, displayLen, abbrev,
                         bearing,
@@ -579,9 +593,197 @@ namespace GeoMetrics.Measurement
                         centralAngle,
                         seg.SegmentType));
                 }
+
+                if (settings != null && settings.MergeCollinearSegments && rawPartSegments.Count > 1)
+                {
+                    var mergedPartSegments = MergeCollinearSegments(
+                        rawPartSegments,
+                        sr,
+                        nativeLinAbbrev,
+                        settings,
+                        isGcs,
+                        isPolygon);
+                    segments.AddRange(mergedPartSegments);
+                }
+                else
+                {
+                    segments.AddRange(rawPartSegments);
+                }
             }
 
             return segments;
+        }
+
+        private static List<SegmentMeasurement> MergeCollinearSegments(
+            List<SegmentMeasurement> rawSegments,
+            SpatialReference sr,
+            string nativeLinAbbrev,
+            DimensionSettings settings,
+            bool isGcs,
+            bool isPolygon)
+        {
+            if (rawSegments == null || rawSegments.Count <= 1)
+                return rawSegments ?? new List<SegmentMeasurement>();
+
+            double tolerance = settings?.CollinearAngleTolerance ?? 1.0;
+            var merged = new List<SegmentMeasurement>();
+            var currentGroup = new List<SegmentMeasurement> { rawSegments[0] };
+
+            for (int i = 1; i < rawSegments.Count; i++)
+            {
+                var candidate = rawSegments[i];
+                var prevInGroup = currentGroup[^1];
+
+                bool canMerge = false;
+
+                // Only straight line segments can be merged (not curves)
+                if (!prevInGroup.IsCurve && !candidate.IsCurve &&
+                    prevInGroup.End != null && candidate.Start != null)
+                {
+                    var v = prevInGroup.End;
+                    var groupStart = currentGroup[0].Start;
+                    var candEnd = candidate.End;
+
+                    if (groupStart != null && candEnd != null)
+                    {
+                        // Vector from shared vertex v backwards to group start
+                        double dx1 = groupStart.X - v.X;
+                        double dy1 = groupStart.Y - v.Y;
+
+                        // Vector from shared vertex v forwards to candidate end
+                        double dx2 = candEnd.X - v.X;
+                        double dy2 = candEnd.Y - v.Y;
+
+                        double? angle = ComputeVertexAngleDegrees(dx1, dy1, dx2, dy2, v, sr);
+
+                        // If group already has multiple items, also verify local angle at vertex v
+                        bool localOk = true;
+                        if (currentGroup.Count > 1)
+                        {
+                            double ldx1 = prevInGroup.Start.X - v.X;
+                            double ldy1 = prevInGroup.Start.Y - v.Y;
+                            double? localAngle = ComputeVertexAngleDegrees(ldx1, ldy1, dx2, dy2, v, sr);
+                            localOk = localAngle.HasValue && Math.Abs(localAngle.Value - 180.0) <= tolerance;
+                        }
+
+                        if (angle.HasValue && Math.Abs(angle.Value - 180.0) <= tolerance && localOk)
+                        {
+                            canMerge = true;
+                        }
+                    }
+                }
+
+                if (canMerge)
+                {
+                    currentGroup.Add(candidate);
+                }
+                else
+                {
+                    merged.Add(CombineSegmentGroup(currentGroup, sr, nativeLinAbbrev, settings, isGcs));
+                    currentGroup = new List<SegmentMeasurement> { candidate };
+                }
+            }
+
+            if (currentGroup.Count > 0)
+            {
+                merged.Add(CombineSegmentGroup(currentGroup, sr, nativeLinAbbrev, settings, isGcs));
+            }
+
+            // For closed polygons: check if the last merged segment and first merged segment meet at ~180° across closure
+            if (isPolygon && merged.Count >= 3)
+            {
+                var first = merged[0];
+                var last = merged[^1];
+
+                if (!first.IsCurve && !last.IsCurve &&
+                    first.Start != null && last.End != null && first.End != null && last.Start != null)
+                {
+                    double gap = Math.Sqrt(Math.Pow(last.End.X - first.Start.X, 2) + Math.Pow(last.End.Y - first.Start.Y, 2));
+                    if (gap < 1e-4)
+                    {
+                        var v = first.Start;
+                        double dx1 = last.Start.X - v.X;
+                        double dy1 = last.Start.Y - v.Y;
+                        double dx2 = first.End.X - v.X;
+                        double dy2 = first.End.Y - v.Y;
+
+                        double? closureAngle = ComputeVertexAngleDegrees(dx1, dy1, dx2, dy2, v, sr);
+                        if (closureAngle.HasValue && Math.Abs(closureAngle.Value - 180.0) <= tolerance)
+                        {
+                            var wrapGroup = new List<SegmentMeasurement> { last, first };
+                            var wrapped = CombineSegmentGroup(wrapGroup, sr, nativeLinAbbrev, settings, isGcs, last.Start, first.End);
+                            merged[0] = wrapped;
+                            merged.RemoveAt(merged.Count - 1);
+                        }
+                    }
+                }
+            }
+
+            return merged;
+        }
+
+        private static SegmentMeasurement CombineSegmentGroup(
+            List<SegmentMeasurement> group,
+            SpatialReference sr,
+            string nativeLinAbbrev,
+            DimensionSettings settings,
+            bool isGcs,
+            MapPoint explicitStart = null,
+            MapPoint explicitEnd = null)
+        {
+            if (group == null || group.Count == 0) return null;
+            if (group.Count == 1 && explicitStart == null && explicitEnd == null) return group[0];
+
+            var start = explicitStart ?? group[0].Start;
+            var end = explicitEnd ?? group[^1].End;
+
+            double totalNativeLen = 0.0;
+            foreach (var s in group)
+            {
+                totalNativeLen += s.NativeLength;
+            }
+
+            var (displayLen, abbrev) = UnitConverter.ConvertLength(
+                totalNativeLen, nativeLinAbbrev, settings.DisplayUnit);
+
+            MapPoint midPoint = null;
+            if (start != null && end != null)
+            {
+                midPoint = MapPointBuilderEx.CreateMapPoint((start.X + end.X) * 0.5, (start.Y + end.Y) * 0.5, start.SpatialReference ?? sr);
+            }
+
+            double? tangentAngle = null;
+            if (start != null && end != null)
+            {
+                double dx = end.X - start.X;
+                double dy = end.Y - start.Y;
+                if (isGcs)
+                {
+                    double latRad = (((start.Y + end.Y) * 0.5) * Math.PI) / 180.0;
+                    dx *= Math.Max(0.01, Math.Cos(latRad));
+                }
+                double deg = Math.Atan2(dy, dx) * (180.0 / Math.PI);
+                if (deg > 90.0) deg -= 180.0;
+                else if (deg < -90.0) deg += 180.0;
+                tangentAngle = deg;
+            }
+
+            double? bearing = (settings.ShowBearings && start != null && end != null)
+                ? ComputeBearing(start, end, sr)
+                : (double?)null;
+
+            return new SegmentMeasurement(
+                start,
+                end,
+                totalNativeLen,
+                displayLen,
+                abbrev,
+                bearing,
+                isCurve: false,
+                midPoint: midPoint,
+                tangentAngle: tangentAngle,
+                centralAngle: null,
+                segmentType: SegmentType.Line);
         }
 
         public static double MeasureDistance(

@@ -74,5 +74,16 @@ namespace GeoMetrics.UI
                 // Safe for design-time
             }
         }
+
+        private void ToleranceTextBox_KeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        {
+            if (e.Key == System.Windows.Input.Key.Enter && sender is TextBox tb)
+            {
+                var binding = tb.GetBindingExpression(TextBox.TextProperty);
+                binding?.UpdateSource();
+                System.Windows.Input.Keyboard.ClearFocus();
+                e.Handled = true;
+            }
+        }
     }
 }

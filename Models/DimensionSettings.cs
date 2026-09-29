@@ -186,6 +186,68 @@ namespace GeoMetrics.Models
             }
         }
 
+        private bool _mergeCollinearSegments = true;
+        /// <summary>
+        /// When enabled, consecutive segments whose angle is close to 180° are merged into a single segment with combined length (Default: ON).
+        /// </summary>
+        public bool MergeCollinearSegments
+        {
+            get => _mergeCollinearSegments;
+            set
+            {
+                if (_mergeCollinearSegments != value)
+                {
+                    _mergeCollinearSegments = value;
+                    Raise(nameof(MergeCollinearSegments));
+                    System.Diagnostics.Trace.WriteLine($"[DIM] MergeCollinearSegments = {_mergeCollinearSegments}");
+                    Module1.Current?.Engine?.RefreshSelectionDisplay();
+                }
+            }
+        }
+
+        private double _collinearAngleTolerance = 1.0;
+        /// <summary>
+        /// Angle tolerance in degrees around 180° (e.g. 1.0° means 179°–181°) to treat consecutive segments as collinear and merge them (Default: 1.0°).
+        /// </summary>
+        public double CollinearAngleTolerance
+        {
+            get => _collinearAngleTolerance;
+            set
+            {
+                double clamped = System.Math.Clamp(value, 0.05, 45.0);
+                if (System.Math.Abs(_collinearAngleTolerance - clamped) > 0.001)
+                {
+                    _collinearAngleTolerance = clamped;
+                    Raise(nameof(CollinearAngleTolerance));
+                    Raise(nameof(CollinearAngleToleranceText));
+                    System.Diagnostics.Trace.WriteLine($"[DIM] CollinearAngleTolerance = {_collinearAngleTolerance}");
+                    Module1.Current?.Engine?.RefreshSelectionDisplay();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Text representation of CollinearAngleTolerance for manual user input.
+        /// </summary>
+        public string CollinearAngleToleranceText
+        {
+            get => _collinearAngleTolerance.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+            set
+            {
+                if (string.IsNullOrWhiteSpace(value)) return;
+                string clean = value.Replace("°", "").Trim();
+                if (double.TryParse(clean, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double parsed) ||
+                    double.TryParse(clean, out parsed))
+                {
+                    CollinearAngleTolerance = parsed;
+                }
+                else
+                {
+                    Raise(nameof(CollinearAngleToleranceText));
+                }
+            }
+        }
+
         private bool _showArea = true;
         public bool ShowArea
         {

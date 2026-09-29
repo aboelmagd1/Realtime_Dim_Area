@@ -6,12 +6,12 @@
 
 1. [Introduction | مقدمة عن الأداة](#1-introduction--مقدمة-عن-الأداة)
 2. [Key Features | أهم المميزات](#2-key-features--أهم-المميزات)
-3. [System Requirements & Installation | متطلبات التشغيل والتثبيت](#3-system-requirements--installation--متطلبات-التشغيل-والتثبيت)
+3. [System Requirements &amp; Installation | متطلبات التشغيل والتثبيت](#3-system-requirements--installation--متطلبات-التشغيل-والتثبيت)
 4. [User Interface Overview | جولة في واجهة المستخدم](#4-user-interface-overview--جولة-في-واجهة-المستخدم)
 5. [Settings Reference | دليل وشرح الإعدادات](#5-settings-reference--دليل-وشرح-الإعدادات)
 6. [Step-by-Step Workflows | خطوات وسيناريوهات العمل](#6-step-by-step-workflows--خطوات-وسيناريوهات-العمل)
-7. [Coordinate Systems & Geodesy | أنظمة الإحداثيات والقياس الجيوديسي](#7-coordinate-systems--geodesy--أنظمة-الإحداثيات-والقياس-الجيوديسي)
-8. [Troubleshooting & FAQ | الأسئلة الشائعة وحل المشكلات](#8-troubleshooting--faq--الأسئلة-الشائعة-وحل-المشكلات)
+7. [Coordinate Systems &amp; Geodesy | أنظمة الإحداثيات والقياس الجيوديسي](#7-coordinate-systems--geodesy--أنظمة-الإحداثيات-والقياس-الجيوديسي)
+8. [Troubleshooting &amp; FAQ | الأسئلة الشائعة وحل المشكلات](#8-troubleshooting--faq--الأسئلة-الشائعة-وحل-المشكلات)
 
 ---
 
@@ -44,6 +44,7 @@ It operates as a **passive real-time monitor** during standard ArcGIS Pro workfl
 ## 3. System Requirements & Installation | متطلبات التشغيل والتثبيت
 
 ### System Requirements
+
 - **Operating System**: Windows 10 / 11 (64-bit).
 - **Host Application**: ArcGIS Pro 3.3.x (verified on 3.3.0.52636) or 3.4.x.
 - **Runtime**: Microsoft .NET Desktop Runtime 8.0 (x64) (e.g. 8.0.2 / 8.0.20 / 8.0.31).
@@ -51,16 +52,20 @@ It operates as a **passive real-time monitor** during standard ArcGIS Pro workfl
 ### Building & Installation (البناء والتثبيت)
 
 #### Option A: 1-Click Installation from Pre-built Package
+
 1. Close any running instances of **ArcGIS Pro**.
-2. Open [`Addin_Package/`](file:///d:/Learning/Realtime%20Dim%20Area/Addin_Package/) and double-click [**`GeoMetrics.esriAddinX`**](file:///d:/Learning/Realtime%20Dim%20Area/Addin_Package/GeoMetrics.esriAddinX).
+2. Open [`Addin_Package/`](<file:///d:/Learning/Realtime%20Dim%20Area/Addin_Package/>) and double-click [**`GeoMetrics.esriAddinX`**](<file:///d:/Learning/Realtime%20Dim%20Area/Addin_Package/GeoMetrics.esriAddinX>).
 3. In the Esri Add-In Installation Wizard, click **Install Add-In**.
 4. Launch **ArcGIS Pro**. The **GeoMetrics** tab will appear on your top ribbon with the official tool logo.
 
 #### Option B: Building from Source
+
 Run the following command from PowerShell:
+
 ```powershell
 dotnet build GeoMetrics.csproj -c Release
 ```
+
 This automatically updates `Addin_Package/GeoMetrics.esriAddinX` with all root DAML assets and compiled binaries.
 
 ---
@@ -77,6 +82,7 @@ This automatically updates `Addin_Package/GeoMetrics.esriAddinX` with all root D
 ```
 
 ### 1. Ribbon Tab: `GeoMetrics`
+
 - **GeoMetrics (ON / OFF) Primary Tool Button**:
   - **Brand Logo / OFF State**: Displays the official **GeoMetrics Brand Icon** (`GeoMetricsLogo_32.png`). The tool is idle; no background monitoring or overlay rendering is active.
   - **Active Emerald / ON State**: Instantly switches to the **Active State Icon** (`GeoMetricsToggle_ON_32.png`) with caption `GeoMetrics (ON)`. The tool actively monitors edit vertices and feature selections, calculating and rendering dimensions live at 60 FPS.
@@ -141,36 +147,39 @@ This automatically updates `Addin_Package/GeoMetrics.esriAddinX` with all root D
 
 ## 5. Settings Reference | دليل وشرح الإعدادات
 
-| Setting | Type | Default | Description | الوصف بالعربية |
-|---|---|---|---|---|
-| **Enable GeoMetrics** | CheckBox | `OFF` | Master switch controlling real-time dimension monitoring. | المفتاح الرئيسي لتشغيل أو إيقاف الأداة. |
-| **Multi-Feature Measurements** | CheckBox | `OFF` | Simultaneously measures and numbers all selected features. | قياس وترقيم جميع المعالم المحددة في وقت واحد. |
-| **Max Features Limit** | DropDown | `50` | Maximum number of selected features to measure (`10`, `25`, `50`, `100`, `200`). | الحد الأقصى لعدد المعالم المقاسة معاً لمنع بطء الأداء. |
-| **Place Dimensions Inside** | CheckBox | `OFF` | Inverts offset vectors to position segment labels inside polygon boundaries. | رسم أبعاد المضلعات للداخل لتفادي تداخل النصوص بين المعالم المتجاورة. |
-| **Target Layer** | DropDown | `Auto-detect` | Pins the tool to a specific layer, or auto-detects from the active selection. | حصر القياسات في طبقة محددة أو الاكتشاف التلقائي. |
-| **Apply to Service Layers** | CheckBox | `OFF` | Enables dimensions on remote ArcGIS Server / AGOL / Portal feature services. | السماح بالعمل على طبقات الويب والخدمات السحابية. |
-| **Segment Lengths** | CheckBox | `ON` | Displays measured lengths along boundary edges. | إظهار أطوال الأضلاع. |
-| **Polygon Area** | CheckBox | `ON` | Displays total polygon area in the interior label point. | إظهار مساحة المضلع مع الوحدة المربعة (`m²`, `ft²`). |
-| **Perimeter** | CheckBox | `OFF` | Displays total perimeter length (`P: 145.63 m`). | إظهار المحيط الكلي للمضلع. |
-| **Vertex Angles** | CheckBox | `OFF` | Displays measured angles at corners (filters out straight angles $\approx 180^\circ$). | إظهار الزوايا بين الأضلاع عند الأركان. |
-| **Vertex Coordinates** | CheckBox | `OFF` | Displays live X and Y coordinates at each vertex point. | إظهار إحداثيات النقاط والأركان (X, Y) لحظياً. |
-| **Decimals (Coordinates)** | DropDown | `4` | Number of decimal digits for X, Y coordinates (0 to 8). | عدد الخانات العشرية المعروضة لإحداثيات X و Y. |
-| **Area Difference** | CheckBox | `OFF` | Displays polygon area before editing, during editing, and the net difference ($\Delta$). | إظهار ومقارنة مساحة المضلع قبل التعديل وأثناء التعديل وفارق التغير. |
-| **Visible Count HUD** | CheckBox | `OFF` | Displays a live on-screen counter of visible vertices and segments (top-left). | عداد حي لعدد النقاط والأضلاع الظاهرة على الشاشة (أعلى اليسار). |
-| **Hidden Warning** | CheckBox | `OFF` | Displays a warning overlay when dimensions are hidden due to zoom level (top-right). | تحذير عند إخفاء أبعاد بسبب مستوى التقريب (أعلى اليمين). |
-| **Measurement Method** | Radio | `Automatic` | `Automatic` (Geodesic for GCS, Planar for Projected), `Planar`, or `Geodesic`. | طريقة الحساب (تلقائي، مسقط، أو جيوديسي). |
-| **Display Units** | DropDown | `Meters` | `Meters`, `Feet`, `US Survey Feet`, `Kilometers`, `Miles`, `Layer Native`. | وحدة القياس والعرض لجميع الأبعاد. |
-| **Decimal Places** | Slider | `2` | Number of decimal digits for lengths and areas (0 to 4). | عدد الخانات العشرية لأطوال الأضلاع والمساحة. |
-| **Label Offset** | Slider | `14 px` | Distance in screen pixels to offset text from segment lines. | مسافة إزاحة النصوص عن الأضلاع بالبكسل. |
-| **Dimension Style** | DropDown | `Numbers_Only` | `Numbers_Only`, `CAD_Standard`, `Minimal`, `High_Contrast`. | نمط الإخراج الرسومي (أرقام فقط، نمط CAD، إلخ). |
-| **Text Color** | DropDown | `Black` | `Black`, `Blue`, `Red`, `Green`, `Orange`, `White`, `Yellow`, `Cyan`. | لون الخط المستخدم في كتابة الأبعاد على الخريطة. |
-| **UI Theme Text Color** | Auto | `Adaptive` | Automatically switches UI text to **Black in Light Theme** and **White in Dark Theme**. | تكيّف لون نصوص الواجهة تلقائياً: **أسود** في النمط الفاتح و**أبيض** في الداكن. |
+| Setting                              | Type            | Default          | Description                                                                                        | الوصف بالعربية                                                                                                                               |
+| ------------------------------------ | --------------- | ---------------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Enable GeoMetrics**          | CheckBox        | `OFF`          | Master switch controlling real-time dimension monitoring.                                          | المفتاح الرئيسي لتشغيل أو إيقاف الأداة.                                                                                  |
+| **Multi-Feature Measurements** | CheckBox        | `OFF`          | Simultaneously measures and numbers all selected features.                                         | قياس وترقيم جميع المعالم المحددة في وقت واحد.                                                                        |
+| **Max Features Limit**         | DropDown        | `50`           | Maximum number of selected features to measure (`10`, `25`, `50`, `100`, `200`).         | الحد الأقصى لعدد المعالم المقاسة معاً لمنع بطء الأداء.                                                       |
+| **Place Dimensions Inside**    | CheckBox        | `OFF`          | Inverts offset vectors to position segment labels inside polygon boundaries.                       | رسم أبعاد المضلعات للداخل لتفادي تداخل النصوص بين المعالم المتجاورة.                            |
+| **Target Layer**               | DropDown        | `Auto-detect`  | Pins the tool to a specific layer, or auto-detects from the active selection.                      | حصر القياسات في طبقة محددة أو الاكتشاف التلقائي.                                                                  |
+| **Apply to Service Layers**    | CheckBox        | `OFF`          | Enables dimensions on remote ArcGIS Server / AGOL / Portal feature services.                       | السماح بالعمل على طبقات الويب والخدمات السحابية.                                                                 |
+| **Segment Lengths**            | CheckBox        | `ON`           | Displays measured lengths along boundary edges.                                                    | إظهار أطوال الأضلاع.                                                                                                                     |
+| **Merge Collinear Segments**   | CheckBox        | `ON`           | Combines consecutive segments with angles close to 180° into a single summed dimension.           | دمج أطوال الأجزاء المتجاورة المستقيمة ذات الزاوية القريبة من 180° في بعد واحد إجمالي. |
+| **Collinear Tolerance**        | Text / DropDown | `1.0°`        | Tolerance angle in degrees around 180° (`0.25°` to `30.0°` presets or manual text input).   | سماحية زاوية الاستقامة حول 180° (خيارات حتى 30° أو إدخال يدوي مباشر).                                   |
+| **Polygon Area**               | CheckBox        | `ON`           | Displays total polygon area in the interior label point.                                           | إظهار مساحة المضلع مع الوحدة المربعة (`m²`, `ft²`).                                                                  |
+| **Perimeter**                  | CheckBox        | `OFF`          | Displays total perimeter length (`P: 145.63 m`).                                                 | إظهار المحيط الكلي للمضلع.                                                                                                          |
+| **Vertex Angles**              | CheckBox        | `OFF`          | Displays measured angles at corners (filters out straight angles$\approx 180^\circ$).            | إظهار الزوايا بين الأضلاع عند الأركان.                                                                                    |
+| **Vertex Coordinates**         | CheckBox        | `OFF`          | Displays live X and Y coordinates at each vertex point.                                            | إظهار إحداثيات النقاط والأركان (X, Y) لحظياً.                                                                            |
+| **Decimals (Coordinates)**     | DropDown        | `4`            | Number of decimal digits for X, Y coordinates (0 to 8).                                            | عدد الخانات العشرية المعروضة لإحداثيات X و Y.                                                                          |
+| **Area Difference**            | CheckBox        | `OFF`          | Displays polygon area before editing, during editing, and the net difference ($\Delta$).         | إظهار ومقارنة مساحة المضلع قبل التعديل وأثناء التعديل وفارق التغير.                              |
+| **Visible Count HUD**          | CheckBox        | `OFF`          | Displays a live on-screen counter of visible vertices and segments (top-left).                     | عداد حي لعدد النقاط والأضلاع الظاهرة على الشاشة (أعلى اليسار).                                          |
+| **Hidden Warning**             | CheckBox        | `OFF`          | Displays a warning overlay when dimensions are hidden due to zoom level (top-right).               | تحذير عند إخفاء أبعاد بسبب مستوى التقريب (أعلى اليمين).                                                       |
+| **Measurement Method**         | Radio           | `Automatic`    | `Automatic` (Geodesic for GCS, Planar for Projected), `Planar`, or `Geodesic`.               | طريقة الحساب (تلقائي، مسقط، أو جيوديسي).                                                                                  |
+| **Display Units**              | DropDown        | `Meters`       | `Meters`, `Feet`, `US Survey Feet`, `Kilometers`, `Miles`, `Layer Native`.             | وحدة القياس والعرض لجميع الأبعاد.                                                                                             |
+| **Decimal Places**             | Slider          | `2`            | Number of decimal digits for lengths and areas (0 to 4).                                           | عدد الخانات العشرية لأطوال الأضلاع والمساحة.                                                                        |
+| **Label Offset**               | Slider          | `14 px`        | Distance in screen pixels to offset text from segment lines.                                       | مسافة إزاحة النصوص عن الأضلاع بالبكسل.                                                                                    |
+| **Dimension Style**            | DropDown        | `Numbers_Only` | `Numbers_Only`, `CAD_Standard`, `Minimal`, `High_Contrast`.                                | نمط الإخراج الرسومي (أرقام فقط، نمط CAD، إلخ).                                                                           |
+| **Text Color**                 | DropDown        | `Black`        | `Black`, `Blue`, `Red`, `Green`, `Orange`, `White`, `Yellow`, `Cyan`.              | لون الخط المستخدم في كتابة الأبعاد على الخريطة.                                                                    |
+| **UI Theme Text Color**        | Auto            | `Adaptive`     | Automatically switches UI text to**Black in Light Theme** and **White in Dark Theme**. | تكيّف لون نصوص الواجهة تلقائياً:**أسود** في النمط الفاتح و**أبيض** في الداكن.        |
 
 ---
 
 ## 6. Step-by-Step Workflows | خطوات وسيناريوهات العمل
 
 ### 🔷 Workflow 1: Live Vertex Dragging (التعديل اللحظي للنقاط)
+
 1. Open your Map in ArcGIS Pro with your polygon or polyline feature layer.
 2. On the **GeoMetrics** ribbon tab, click **GeoMetrics** to turn it **ON** (button turns Green).
 3. Go to the **Edit** tab on the ribbon $\rightarrow$ click **Modify** $\rightarrow$ select **Edit Vertices**.
@@ -181,6 +190,7 @@ This automatically updates `Addin_Package/GeoMetrics.esriAddinX` with all root D
 ---
 
 ### 🔷 Workflow 2: Instant Feature Selection Dimensions (قياس المعالم المحددة)
+
 1. Ensure GeoMetrics is **ON**.
 2. Select any polygon or polyline using the standard **Select** tool on the map.
 3. GeoMetrics immediately draws all measurements for the selected feature.
@@ -189,6 +199,7 @@ This automatically updates `Addin_Package/GeoMetrics.esriAddinX` with all root D
 ---
 
 ### 🔷 Workflow 3: Displaying Parcel Vertex Coordinates (X, Y) (عرض إحداثيات الأركان)
+
 1. Open the **GeoMetrics Settings** pane from the ribbon.
 2. In the **Show / Hide** section:
    - Check **Vertex coordinates (X, Y)**.
@@ -199,6 +210,7 @@ This automatically updates `Addin_Package/GeoMetrics.esriAddinX` with all root D
 ---
 
 ### 🔷 Workflow 4: Area Difference (Before & After Edit) (مقارنة المساحة قبل وبعد التعديل)
+
 1. In the **GeoMetrics Settings** pane, enable **Area difference (before & after edit)**.
 2. Select or edit any parcel/polygon (Modify $\rightarrow$ Edit Vertices).
 3. As you drag vertices or reshape the polygon, the interior label displays:
@@ -210,6 +222,7 @@ This automatically updates `Addin_Package/GeoMetrics.esriAddinX` with all root D
 4. This gives real-time visibility into the exact area gained or lost during boundary adjustments.
 
 ### 🔷 Workflow 5: Multi-Feature Measurements & Inside Dimensions (قياس معالم متعددة)
+
 1. Open the **GeoMetrics Settings** pane from the ribbon.
 2. In the **Selection & Multi-Feature** section:
    - Check **Multi-feature measurements**.
@@ -225,11 +238,12 @@ This automatically updates `Addin_Package/GeoMetrics.esriAddinX` with all root D
 GeoMetrics accurately follows ArcGIS Pro's standard measurement engine:
 
 1. **Geographic Coordinate Systems (GCS e.g. WGS84, EPSG:4326)**:
+
    - When set to `Automatic`, GeoMetrics performs true **Geodesic** ellipsoidal calculations on the WGS84 ellipsoid.
    - Segment lengths and areas are computed in true ground meters and converted to your chosen display unit.
    - Text placement uses latitude-aware geodesy ($\cos(\text{latitude})$ scaling) for precise angle and normal vector orientations.
-
 2. **Projected Coordinate Systems (PCS e.g. UTM, State Plane, Egypt Red Belt)**:
+
    - When set to `Automatic`, GeoMetrics uses high-speed **Planar** Euclidean geometry using the layer's native CRS units.
 
 ---
@@ -237,18 +251,22 @@ GeoMetrics accurately follows ArcGIS Pro's standard measurement engine:
 ## 8. Troubleshooting & FAQ | الأسئلة الشائعة وحل المشكلات
 
 ### Q1: The Settings Pane appears blank or does not open.
-- **Solution**: Ensure you have installed the latest [`Addin_Package/GeoMetrics.esriAddinX`](file:///d:/Learning/Realtime%20Dim%20Area/Addin_Package/GeoMetrics.esriAddinX). Close ArcGIS Pro, double-click the `.esriAddinX` package to reinstall, and reopen ArcGIS Pro.
+
+- **Solution**: Ensure you have installed the latest [`Addin_Package/GeoMetrics.esriAddinX`](<file:///d:/Learning/Realtime%20Dim%20Area/Addin_Package/GeoMetrics.esriAddinX>). Close ArcGIS Pro, double-click the `.esriAddinX` package to reinstall, and reopen ArcGIS Pro.
 
 ### Q2: Dimensions are not appearing when I select a feature.
+
 - **Check 1**: Make sure the **GeoMetrics (ON / OFF)** master switch on the ribbon is **ON** (Green).
 - **Check 2**: If the layer is a web service (FeatureServer / MapServer), check **Apply to Service Layers** in the Settings dockpane.
 - **Check 3**: Ensure the layer is a Polygon or Polyline layer. Point layers are not dimensioned.
 
 ### Q3: How does text color behave in ArcGIS Pro Light and Dark themes?
+
 - **Settings DockPane UI Text**: Automatically adapts to your active ArcGIS Pro theme. In **Light Theme**, all UI labels and control text render in crisp **Black** (`#000000`). In **Dark Theme**, all UI text renders in **White** (`#FFFFFF`) with native contrast. No manual action is needed.
 - **Map Overlay Text**: Customizable via **GeoMetrics Settings** $\rightarrow$ **Precision & Appearance** $\rightarrow$ **Text Color** (e.g. choose `Black` or `Dark Blue` for light basemaps, or `White`, `Yellow`, or `Cyan` for dark satellite/imagery basemaps).
 
 ### Q4: Does GeoMetrics modify my feature class data or attribute tables?
+
 - **No**. GeoMetrics is strictly an overlay visualization tool. It utilizes temporary `MapView.AddOverlay` CIM graphics stored in ephemeral graphics memory and never modifies your shapefiles, enterprise geodatabases, or attribute tables.
 
 ---
